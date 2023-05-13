@@ -4,7 +4,7 @@ import random
 import pandas as pd
 from torch.utils.data import Dataset, DataLoader
 from scipy.io import arff
-#from pyod.models.anogan import AnoGAN
+from pyod.models.anogan import AnoGAN
 from pyod.models.mo_gaal import MO_GAAL
 
 warnings.simplefilter("ignore")
@@ -44,7 +44,7 @@ gpu = 0
 
 usedDevice = torch.device("cpu" if gpu == 0 else "cuda")
 dataset = CustomDataset(path)
-train_set , eval_set, test_set = torch.utils.data.random_split(dataset.data_numpy, [0.6,0.2,0.2]) #PFUSCH!! NUR ALS TEST FUER MOGAAL
+train_set, eval_set, test_set = torch.utils.data.random_split(dataset.data_numpy[:,:-1], [0.6,0.2,0.2]) #PFUSCH WEGEN NUMPY?
 #maybe data loader for each category?
 dataloader = DataLoader(dataset=dataset.data_tensor, batch_size = batch_size, shuffle=True, num_workers=num_workers)
 
@@ -52,9 +52,12 @@ dataloader = DataLoader(dataset=dataset.data_tensor, batch_size = batch_size, sh
 
 #Implementation of other models using the PyOD library for reference
 
-mogaal = MO_GAAL()
-mogaal.fit(train_set)
+mogaal_model = MO_GAAL()
+mogaal_model.fit(train_set)
+test_mogaal_pred = mogaal_model.predict(test_set)
 
-test_od_pred = mogaal.predict(test_set)
+anogan_model = AnoGAN()
+anogan_model.fit(train_set)
+test_anogan_pred = anogan_model.predict(test_set)
 
 
