@@ -36,7 +36,7 @@ class CustomDataset(Dataset):
 
 # Variables, data settings etc.
 
-path = "/home/denis/Documents/Resources_Thesis/Waveform_withoutdupl_norm_v01.arff"
+path = "./Resources/Datasets/Waveform_withoutdupl_norm_v01.arff"
 seed = 777
 torch.manual_seed(seed)
 random.seed(seed)
@@ -57,7 +57,7 @@ dataloader = DataLoader(dataset=dataset.data_tensor, batch_size = batch_size, sh
 # Implementation of other models using the PyOD library for reference
 # Important: prediction is 1 for outlier, 0 for normal
 
-mogaal_model = MO_GAAL()
+mogaal_model = MO_GAAL(contamination=0.05)
 mogaal_model.fit(train_set)
 test_mogaal_pred = mogaal_model.predict(test_set)
 
