@@ -19,8 +19,9 @@ class CustomDataset(Dataset):
         # start preprocessing 
         self.arff_data = arff.loadarff(path)
         self.df = pd.DataFrame(self.arff_data[0])
-        # 0 is outlier, 1 is normal data
-        self.df["outlier"] = pd.factorize(self.df["outlier"])[0]
+        # 1 is outlier, 0 is normal data
+        self.df["outlier"] = pd.factorize(self.df["outlier"])[0] - 1
+        self.df["outlier"] = self.df["outlier"].abs()
         # end preprocessing
         
         self.data_tensor = torch.tensor(self.df.to_numpy()).float()
@@ -55,7 +56,6 @@ dataloader = DataLoader(dataset=dataset.data_tensor, batch_size = batch_size, sh
 #_______________________________________________________________________________________
 
 # Implementation of other models using the PyOD library for reference
-# Important: prediction is 1 for outlier, 0 for normal
 
 mogaal_model = MO_GAAL(contamination=0.05)
 mogaal_model.fit(train_set)
