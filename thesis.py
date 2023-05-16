@@ -1,75 +1,99 @@
-import warnings #suppress warnings
-import torch
-import random
-import pandas as pd
-from torch.utils.data import Dataset, DataLoader
 from scipy.io import arff
-from pyod.models.anogan import AnoGAN
+import pandas as pd
 from pyod.models.mo_gaal import MO_GAAL
 from pyod.models.lof import LOF
-from pyod.models.gmm import GMM
+from pyod.models.knn import KNN
+from pyod.models.anogan import AnoGAN
+from sklearn import metrics
+import tensorflow as tf
+import numpy as np
+import random
+import csv
 
-
-warnings.simplefilter("ignore")
-#_______________________________________________________________________________________
-
-# Probably doesn't work for images our high dim data yet
-class CustomDataset(Dataset):
+class CustomData():
     def __init__(self, path):
-        # start preprocessing 
-        self.arff_data = arff.loadarff(path)
-        self.df = pd.DataFrame(self.arff_data[0])
-        # 1 is outlier, 0 is normal data
-        self.df["outlier"] = pd.factorize(self.df["outlier"])[0] - 1
-        self.df["outlier"] = self.df["outlier"].abs()
-        # end preprocessing
+        arff_data = arff.loadarff(path)
+        df = pd.DataFrame(arff_data[0])
+        df["outlier"] = pd.factorize(df["outlier"], sort=True)[0]
         
-        self.data_tensor = torch.tensor(self.df.to_numpy()).float()
-        self.data_numpy = self.df.to_numpy()
-        self.n = self.df.shape[0]
+        self.data = df.iloc[:,:-2]
+        self.ground_truth = df.iloc[:,-1]
         
     def __len__(self):
-        return len(self.data_tensor)
+        return len(self.data)
     
     def __getitem__(self, i):
-        return self.data_tensor[i]
-#_______________________________________________________________________________________
+        return self.data[i]
+        
+def AUC(truth, decision):
+    output = metrics.roc_auc_score(truth, decision)
+    print("AUC: " + str(output))
+    return output
+    
+# set seeds in every possible package (and pray that it works)
+def initialize(seed):
+    tf.keras.utils.set_random_seed(seed)
+    random.seed(seed)
+    tf.random.set_seed(seed)
+    np.random.seed(seed)
+    np.random.default_rng(seed)
+    
+# run the models and calculate AUC
+def run(dataset):
+    AUC_scores = np.empty((0))
+    
+    lof_model = LOF()
+    lof_model.fit(dataset.data)
+    AUC_scores = np.append(AUC_scores, AUC(dataset.ground_truth, lof_model.decision_function(dataset.data)))
+    
+    knn_model = KNN()
+    knn_model.fit(dataset.data)
+    AUC_scores = np.append(AUC_scores, AUC(dataset.ground_truth, knn_model.decision_function(dataset.data)))
+    
+    mogaal_model = MO_GAAL(lr_d=0.01, lr_g=0.01, stop_epochs=50)
+    mogaal_model.fit(dataset.data)
+    AUC_scores = np.append(AUC_scores, AUC(dataset.ground_truth, mogaal_model.decision_function(dataset.data)))
+    
+    anogan_model = AnoGAN()
+    anogan_model.fit(dataset.data)
+    AUC_scores = np.append(AUC_scores, AUC(dataset.ground_truth, anogan_model.decision_function(dataset.data)))
+    
+    return AUC_scores
 
-# Variables, data settings etc.
+# the main experiment. Load the given dataset, run it, write AUC in a csv.
+def experiment(data_path, result_path):
+    dataset = CustomData(data_path)
+    seed = 0
+    
+    with open(result_path, "a", newline = "") as csv_file:
+        writer = csv.writer(csv_file)
+        writer. writerow(["LOF_AUC", "KNN_AUC", "MO_GAAL_AUC", "AnoGAN_AUC"])
+        
+    for i in range(10):
+        print("---------- " + "start run " + str(i) + " ----------")
+        seed += 111
+        initialize(seed)
+        output = run(dataset)
+        with open(result_path, "a", newline = "") as csv_file:
+            writer = csv.writer(csv_file)
+            writer. writerow(output)
+        print("---------- " + "end run " + str(i) + " ----------")
 
-path = "./Resources/Datasets/Waveform_withoutdupl_norm_v01.arff"
-seed = 777
-torch.manual_seed(seed)
-random.seed(seed)
-num_workers = 2
-batch_size = 128
-# number of used GPUs
-gpu = 0 
+def main():
+    arrythmia_path = "./Resources/Datasets/Arrhythmia_withoutdupl_norm_02_v01.arff"
+    wave_path = "./Resources/Datasets/Waveform_withoutdupl_norm_v01.arff"
+    internet_ads_path = "./Resources/Datasets/InternetAds_withoutdupl_norm_02_v01.arff"
+    result_arrythmia = "./Results/Arrythmia_first_run.csv"
+    result_waveform = "./Results/Waveform_first_run.csv"
+    result_internet_ads = "./Results/Internet_ads_first_run.csv"
 
-usedDevice = torch.device("cpu" if gpu == 0 else "cuda")
-dataset = CustomDataset(path)
-# *without* ground truth column
-train_set, eval_set, test_set = torch.utils.data.random_split(dataset.data_numpy[:,:-1], [0.6,0.2,0.2]) #Do we want to use numpy here?
-# maybe data loader for each category?
-dataloader = DataLoader(dataset=dataset.data_tensor, batch_size = batch_size, shuffle=True, num_workers=num_workers)
-
-#_______________________________________________________________________________________
-
-# Implementation of other models using the PyOD library for reference
-
-mogaal_model = MO_GAAL(contamination=0.05)
-mogaal_model.fit(train_set)
-test_mogaal_pred = mogaal_model.predict(test_set)
-
-anogan_model = AnoGAN()
-anogan_model.fit(train_set)
-test_anogan_pred = anogan_model.predict(test_set)
-
-lof_model = LOF()
-lof_model.fit(train_set)
-test_lof_pred = lof_model.predict(test_set)
-
-gmm_model = GMM(n_components=1)
-gmm_model.fit(train_set)
-test_gmm_pred = gmm_model.predict(test_set)
-
+    experiment(arrythmia_path,result_arrythmia)
+    experiment(wave_path,result_waveform)
+    experiment(internet_ads_path,result_internet_ads)
+        
+    
+    
+if __name__ == "__main__":
+    main()
+    
+    
