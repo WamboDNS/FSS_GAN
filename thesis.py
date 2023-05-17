@@ -9,6 +9,11 @@ import tensorflow as tf
 import numpy as np
 import random
 import csv
+import warnings
+import os
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
+warnings.filterwarnings("ignore")
 
 class CustomData():
     def __init__(self, path):
@@ -51,7 +56,7 @@ def run(dataset, seed):
     knn_model.fit(dataset.data)
     AUC_scores = np.append(AUC_scores, AUC(dataset.ground_truth, knn_model.decision_function(dataset.data)))
     
-    mogaal_model = MO_GAAL(lr_d=0.01, lr_g=0.01, stop_epochs=50)
+    mogaal_model = MO_GAAL(lr_d=0.01, lr_g=0.01) #arrythmia is 50
     mogaal_model.fit(dataset.data)
     AUC_scores = np.append(AUC_scores, AUC(dataset.ground_truth, mogaal_model.decision_function(dataset.data)))
     
@@ -71,14 +76,14 @@ def experiment(data_path, result_path):
         writer. writerow(["Seed","LOF_AUC", "KNN_AUC", "MO_GAAL_AUC", "AnoGAN_AUC"])
         
     for i in range(10):
-        print("---------- " + "start run " + str(i) + " ----------")
+        print("---------- " + "start run " + data_path + " " + str(i) + " ----------")
         seed += 111
         initialize(seed)
         output = run(dataset, seed)
         with open(result_path, "a", newline = "") as csv_file:
             writer = csv.writer(csv_file)
             writer. writerow(output)
-        print("---------- " + "end run " + str(i) + " ----------")
+        print("---------- " + "end run " + data_path + " " + str(i) + " ----------")
 
 def main():
     arrythmia_path = "./Resources/Datasets/Arrhythmia_withoutdupl_norm_02_v01.arff"
@@ -88,7 +93,7 @@ def main():
     result_waveform = "./Results/Waveform_first_run.csv"
     result_internet_ads = "./Results/Internet_ads_first_run.csv"
 
-    experiment(arrythmia_path,result_arrythmia)
+    #experiment(arrythmia_path,result_arrythmia)
     experiment(wave_path,result_waveform)
     experiment(internet_ads_path,result_internet_ads)
         
