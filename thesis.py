@@ -39,8 +39,9 @@ def initialize(seed):
     np.random.default_rng(seed)
     
 # run the models and calculate AUC
-def run(dataset):
+def run(dataset, seed):
     AUC_scores = np.empty((0))
+    AUC_scores = np.append(AUC_scores, seed)
     
     lof_model = LOF()
     lof_model.fit(dataset.data)
@@ -67,13 +68,13 @@ def experiment(data_path, result_path):
     
     with open(result_path, "a", newline = "") as csv_file:
         writer = csv.writer(csv_file)
-        writer. writerow(["LOF_AUC", "KNN_AUC", "MO_GAAL_AUC", "AnoGAN_AUC"])
+        writer. writerow(["Seed","LOF_AUC", "KNN_AUC", "MO_GAAL_AUC", "AnoGAN_AUC"])
         
     for i in range(10):
         print("---------- " + "start run " + str(i) + " ----------")
         seed += 111
         initialize(seed)
-        output = run(dataset)
+        output = run(dataset, seed)
         with open(result_path, "a", newline = "") as csv_file:
             writer = csv.writer(csv_file)
             writer. writerow(output)
