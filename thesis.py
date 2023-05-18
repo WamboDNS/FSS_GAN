@@ -11,6 +11,7 @@ import random
 import csv
 import warnings
 import os
+import sys
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 tf.debugging.experimental.disable_dump_debug_info
@@ -58,7 +59,7 @@ def run(dataset, seed):
     knn_model.fit(dataset.data)
     AUC_scores = np.append(AUC_scores, AUC(dataset.ground_truth, knn_model.decision_function(dataset.data)))
     
-    mogaal_model = MO_GAAL(lr_d=0.01, lr_g=0.01, stop_epochs=50) #arrythmia is 50
+    mogaal_model = MO_GAAL(lr_d=0.01, lr_g=0.01, stop_epochs=50)
     mogaal_model.fit(dataset.data)
     AUC_scores = np.append(AUC_scores, AUC(dataset.ground_truth, mogaal_model.decision_function(dataset.data)))
     
@@ -96,9 +97,12 @@ def main():
     result_waveform = "./Results/Run_2/Waveform.csv"
     result_internet_ads = "./Results/Run_2/Internet_ads.csv"
 
-    experiment(arrythmia_path,result_arrythmia)
-    experiment(wave_path,result_waveform)
-    experiment(internet_ads_path,result_internet_ads)
+    if str(sys.argv[1]) != "0":
+        experiment(arrythmia_path,result_arrythmia)
+    if str(sys.argv[2]) != "0":
+        experiment(wave_path,result_waveform)
+    if str(sys.argv[3]) != "0":
+        experiment(internet_ads_path,result_internet_ads)
         
     
     
