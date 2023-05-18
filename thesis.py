@@ -42,6 +42,7 @@ def initialize(seed):
     tf.random.set_seed(seed)
     np.random.seed(seed)
     np.random.default_rng(seed)
+    os.environ["PYTHONHASSEED"] = str(seed)
     
 # run the models and calculate AUC
 def run(dataset, seed):
@@ -64,7 +65,7 @@ def run(dataset, seed):
     anogan_model.fit(dataset.data)
     AUC_scores = np.append(AUC_scores, AUC(dataset.ground_truth, anogan_model.decision_function(dataset.data)))
     
-    return AUC_scores
+    return AUC(dataset.ground_truth, anogan_model.decision_function(dataset.data))#AUC_scores
 
 # the main experiment. Load the given dataset, run it, write AUC in a csv.
 def experiment(data_path, result_path):
@@ -86,6 +87,9 @@ def experiment(data_path, result_path):
         print("---------- " + "end run " + data_path + " " + str(i) + " ----------")
 
 def main():
+    print("devices = tf.config.list_physical_devices('GPU')")
+    print(tf.test.is_built_with_cuda())
+    
     arrythmia_path = "./Resources/Datasets/Arrhythmia_withoutdupl_norm_02_v01.arff"
     wave_path = "./Resources/Datasets/Waveform_withoutdupl_norm_v01.arff"
     internet_ads_path = "./Resources/Datasets/InternetAds_withoutdupl_norm_02_v01.arff"
@@ -93,9 +97,9 @@ def main():
     result_waveform = "./Results/Waveform_first_run.csv"
     result_internet_ads = "./Results/Internet_ads_first_run.csv"
 
-    #experiment(arrythmia_path,result_arrythmia)
-    experiment(wave_path,result_waveform)
-    experiment(internet_ads_path,result_internet_ads)
+    experiment(arrythmia_path,result_arrythmia)
+    #experiment(wave_path,result_waveform)
+    #experiment(internet_ads_path,result_internet_ads)
         
     
     
