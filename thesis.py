@@ -12,7 +12,7 @@ import csv
 import warnings
 import os
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 tf.debugging.experimental.disable_dump_debug_info
 warnings.filterwarnings("ignore")
 
@@ -22,8 +22,8 @@ class CustomData():
         df = pd.DataFrame(arff_data[0])
         df["outlier"] = pd.factorize(df["outlier"], sort=True)[0]
         
-        self.data = tf.convert_to_tensor(df.iloc[:,:-2])
-        self.ground_truth = tf.convert_to_tensor(df.iloc[:,-1])
+        self.data = df.iloc[:,:-2]
+        self.ground_truth = df.iloc[:,-1]
         
     def __len__(self):
         return len(self.data)
@@ -58,7 +58,7 @@ def run(dataset, seed):
     knn_model.fit(dataset.data)
     AUC_scores = np.append(AUC_scores, AUC(dataset.ground_truth, knn_model.decision_function(dataset.data)))
     
-    mogaal_model = MO_GAAL(lr_d=0.01, lr_g=0.01) #arrythmia is 50
+    mogaal_model = MO_GAAL(lr_d=0.01, lr_g=0.01, stop_epochs=50) #arrythmia is 50
     mogaal_model.fit(dataset.data)
     AUC_scores = np.append(AUC_scores, AUC(dataset.ground_truth, mogaal_model.decision_function(dataset.data)))
     
@@ -66,7 +66,7 @@ def run(dataset, seed):
     anogan_model.fit(dataset.data)
     AUC_scores = np.append(AUC_scores, AUC(dataset.ground_truth, anogan_model.decision_function(dataset.data)))
     
-    return AUC(dataset.ground_truth, anogan_model.decision_function(dataset.data))#AUC_scores
+    return AUC_scores
 
 # the main experiment. Load the given dataset, run it, write AUC in a csv.
 def experiment(data_path, result_path):
@@ -92,13 +92,13 @@ def main():
     arrythmia_path = "./Resources/Datasets/Arrhythmia_withoutdupl_norm_02_v01.arff"
     wave_path = "./Resources/Datasets/Waveform_withoutdupl_norm_v01.arff"
     internet_ads_path = "./Resources/Datasets/InternetAds_withoutdupl_norm_02_v01.arff"
-    result_arrythmia = "./Results/Arrythmia_first_run.csv"
-    result_waveform = "./Results/Waveform_first_run.csv"
-    result_internet_ads = "./Results/Internet_ads_first_run.csv"
+    result_arrythmia = "./Results/Run_2/Arrythmia.csv"
+    result_waveform = "./Results/Run_2/Waveform.csv"
+    result_internet_ads = "./Results/Run_2/Internet_ads.csv"
 
     experiment(arrythmia_path,result_arrythmia)
-    #experiment(wave_path,result_waveform)
-    #experiment(internet_ads_path,result_internet_ads)
+    experiment(wave_path,result_waveform)
+    experiment(internet_ads_path,result_internet_ads)
         
     
     
