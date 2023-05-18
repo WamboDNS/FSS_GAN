@@ -12,7 +12,8 @@ import csv
 import warnings
 import os
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+tf.debugging.experimental.disable_dump_debug_info
 warnings.filterwarnings("ignore")
 
 class CustomData():
@@ -21,8 +22,8 @@ class CustomData():
         df = pd.DataFrame(arff_data[0])
         df["outlier"] = pd.factorize(df["outlier"], sort=True)[0]
         
-        self.data = df.iloc[:,:-2]
-        self.ground_truth = df.iloc[:,-1]
+        self.data = tf.convert_to_tensor(df.iloc[:,:-2])
+        self.ground_truth = tf.convert_to_tensor(df.iloc[:,-1])
         
     def __len__(self):
         return len(self.data)
@@ -87,8 +88,6 @@ def experiment(data_path, result_path):
         print("---------- " + "end run " + data_path + " " + str(i) + " ----------")
 
 def main():
-    print("devices = tf.config.list_physical_devices('GPU')")
-    print(tf.test.is_built_with_cuda())
     
     arrythmia_path = "./Resources/Datasets/Arrhythmia_withoutdupl_norm_02_v01.arff"
     wave_path = "./Resources/Datasets/Waveform_withoutdupl_norm_v01.arff"
