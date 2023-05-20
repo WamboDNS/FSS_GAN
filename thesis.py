@@ -1,3 +1,5 @@
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 from scipy.io import arff
 import pandas as pd
 from pyod.models.mo_gaal import MO_GAAL
@@ -7,13 +9,11 @@ from pyod.models.anogan import AnoGAN
 from sklearn import metrics
 import tensorflow as tf
 import numpy as np
-import random
 import csv
 import warnings
-import os
 import sys
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
 tf.debugging.experimental.disable_dump_debug_info
 warnings.filterwarnings("ignore")
 
