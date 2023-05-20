@@ -39,12 +39,15 @@ def AUC(truth, decision):
     
 # set seeds in every possible package (and pray that it works)
 def initialize(seed):
-    tf.keras.utils.set_random_seed(seed)
-    random.seed(seed)
-    tf.random.set_seed(seed)
-    np.random.seed(seed)
-    np.random.default_rng(seed)
+    tf.keras.utils.set_random_seed(seed) #seeds numpy, random and tf all at once
+    tf.config.experimental.enable_op_determinism()
+    
+    tf.config.threading.set_inter_op_parallelism_threads(1)
+    tf.config.threading.set_intra_op_parallelism_threads(1)
+    os.environ['TF_DETERMINISTIC_OPS'] = '1'
+    os.environ['TF_CUDNN_DETERMINISTIC'] = '1'
     os.environ["PYTHONHASSEED"] = str(seed)
+    
     
 # run the models and calculate AUC
 def run(dataset, seed):
@@ -59,7 +62,7 @@ def run(dataset, seed):
     knn_model.fit(dataset.data)
     AUC_scores = np.append(AUC_scores, AUC(dataset.ground_truth, knn_model.decision_function(dataset.data)))
     
-    mogaal_model = MO_GAAL(lr_d=0.01, lr_g=0.01, stop_epochs=50)
+    mogaal_model = MO_GAAL(lr_d=0.01, lr_g=0.02, stop_epochs=50)
     mogaal_model.fit(dataset.data)
     AUC_scores = np.append(AUC_scores, AUC(dataset.ground_truth, mogaal_model.decision_function(dataset.data)))
     
