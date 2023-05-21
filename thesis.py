@@ -62,11 +62,11 @@ def run(dataset, seed):
     knn_model.fit(dataset.data)
     AUC_scores = np.append(AUC_scores, AUC(dataset.ground_truth, knn_model.decision_function(dataset.data)))
     
-    mogaal_model = MO_GAAL(lr_d=0.01, lr_g=0.02, stop_epochs=50)
+    mogaal_model = MO_GAAL(lr_d=0.02, lr_g=0.02, stop_epochs=50, contamination=0.02)
     mogaal_model.fit(dataset.data)
     AUC_scores = np.append(AUC_scores, AUC(dataset.ground_truth, mogaal_model.decision_function(dataset.data)))
     
-    anogan_model = AnoGAN()
+    anogan_model = AnoGAN(preprocessing=True, learning_rate=0.01, contamination=0.02)
     anogan_model.fit(dataset.data)
     AUC_scores = np.append(AUC_scores, AUC(dataset.ground_truth, anogan_model.decision_function(dataset.data)))
     
@@ -96,9 +96,9 @@ def main():
     arrythmia_path = "./Resources/Datasets/Arrhythmia_withoutdupl_norm_02_v01.arff"
     wave_path = "./Resources/Datasets/Waveform_withoutdupl_norm_v01.arff"
     internet_ads_path = "./Resources/Datasets/InternetAds_withoutdupl_norm_02_v01.arff"
-    result_arrythmia = "./Results/Run_2/Arrythmia.csv"
-    result_waveform = "./Results/Run_2/Waveform.csv"
-    result_internet_ads = "./Results/Run_2/Internet_ads.csv"
+    result_arrythmia = "./Results/Run_3/Arrythmia.csv"
+    result_waveform = "./Results/Run_3/Waveform.csv"
+    result_internet_ads = "./Results/Run_3/Internet_ads.csv"
 
     if str(sys.argv[1]) != "0":
         experiment(arrythmia_path,result_arrythmia)
