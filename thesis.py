@@ -55,50 +55,55 @@ def run(dataset, seed):
     AUC_scores = np.empty((0))
     AUC_scores = np.append(AUC_scores, seed)
     
+    initialize(seed)
     lof_model = LOF()
     lof_model.fit(dataset.data)
     AUC_scores = np.append(AUC_scores, AUC(dataset.ground_truth, lof_model.decision_function(dataset.data)))
     
+    initialize(seed)
     fb50_model = FeatureBagging(n_estimators=50)
     fb50_model.fit(dataset.data)
     AUC_scores = np.append(AUC_scores, AUC(dataset.ground_truth, fb50_model.decision_function(dataset.data)))
     
+    initialize(seed)
     fb100_model = FeatureBagging(n_estimators=100)
     fb100_model.fit(dataset.data)
     AUC_scores = np.append(AUC_scores, AUC(dataset.ground_truth, fb100_model.decision_function(dataset.data)))
     
+    initialize(seed)
     fb500_model = FeatureBagging(n_estimators=500)
     fb500_model.fit(dataset.data)
     AUC_scores = np.append(AUC_scores, AUC(dataset.ground_truth, fb500_model.decision_function(dataset.data)))
     
+    initialize(seed)
     knn_model = KNN()
     knn_model.fit(dataset.data)
     AUC_scores = np.append(AUC_scores, AUC(dataset.ground_truth, knn_model.decision_function(dataset.data)))
     
+    initialize(seed)
     mogaal_model = MO_GAAL(lr_g = 0.01, stop_epochs=50)
     mogaal_model.fit(dataset.data)
     AUC_scores = np.append(AUC_scores, AUC(dataset.ground_truth, mogaal_model.decision_function(dataset.data)))
     
+    initialize(seed)
     anogan_model = AnoGAN()
     anogan_model.fit(dataset.data)
     AUC_scores = np.append(AUC_scores, AUC(dataset.ground_truth, anogan_model.decision_function(dataset.data)))
     
     return AUC_scores
 
-# the main experiment. Load the given dataset, run it, write AUC in a csv.
+# the main experiment. Load the given dataset, run it, write AUC in a csv.s
 def experiment(data_path, result_path):
     dataset = CustomData(data_path)
-    seed = 222
+    seeds =[777, 45116, 4403, 92879, 34770]
     
     with open(result_path, "a", newline = "") as csv_file:
         writer = csv.writer(csv_file)
         writer. writerow(["Seed","LOF_AUC", "LOF_50", "LOF_100", "LOF_500", "KNN_AUC", "MO_GAAL_AUC", "AnoGAN_AUC"])
         
-    for i in range(5):
+    for i in range(len(seeds)):
         print("---------- " + "start run " + data_path + " " + str(i) + " ----------")
-        seed += 111
-        initialize(seed)
-        output = run(dataset, seed)
+        output = run(dataset, seeds[i])
         with open(result_path, "a", newline = "") as csv_file:
             writer = csv.writer(csv_file)
             writer. writerow(output)
