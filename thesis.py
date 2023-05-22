@@ -4,6 +4,7 @@ from scipy.io import arff
 import pandas as pd
 from pyod.models.mo_gaal import MO_GAAL
 from pyod.models.lof import LOF
+from pyod.models.feature_bagging import FeatureBagging
 from pyod.models.knn import KNN
 from pyod.models.anogan import AnoGAN
 from sklearn import metrics
@@ -58,15 +59,27 @@ def run(dataset, seed):
     lof_model.fit(dataset.data)
     AUC_scores = np.append(AUC_scores, AUC(dataset.ground_truth, lof_model.decision_function(dataset.data)))
     
+    fb50_model = FeatureBagging(n_estimators=50)
+    fb50_model.fit(dataset.data)
+    AUC_scores = np.append(AUC_scores, AUC(dataset.ground_truth, fb50_model.decision_function(dataset.data)))
+    
+    fb100_model = FeatureBagging(n_estimators=100)
+    fb100_model.fit(dataset.data)
+    AUC_scores = np.append(AUC_scores, AUC(dataset.ground_truth, fb100_model.decision_function(dataset.data)))
+    
+    fb500_model = FeatureBagging(n_estimators=500)
+    fb500_model.fit(dataset.data)
+    AUC_scores = np.append(AUC_scores, AUC(dataset.ground_truth, fb500_model.decision_function(dataset.data)))
+    
     knn_model = KNN()
     knn_model.fit(dataset.data)
     AUC_scores = np.append(AUC_scores, AUC(dataset.ground_truth, knn_model.decision_function(dataset.data)))
     
-    mogaal_model = MO_GAAL(lr_d=0.02, lr_g=0.02, stop_epochs=50, contamination=0.02)
+    mogaal_model = MO_GAAL(stop_epochs=50)
     mogaal_model.fit(dataset.data)
     AUC_scores = np.append(AUC_scores, AUC(dataset.ground_truth, mogaal_model.decision_function(dataset.data)))
     
-    anogan_model = AnoGAN(preprocessing=True, learning_rate=0.01, contamination=0.02)
+    anogan_model = AnoGAN()
     anogan_model.fit(dataset.data)
     AUC_scores = np.append(AUC_scores, AUC(dataset.ground_truth, anogan_model.decision_function(dataset.data)))
     
@@ -75,13 +88,13 @@ def run(dataset, seed):
 # the main experiment. Load the given dataset, run it, write AUC in a csv.
 def experiment(data_path, result_path):
     dataset = CustomData(data_path)
-    seed = 0
+    seed = 222
     
     with open(result_path, "a", newline = "") as csv_file:
         writer = csv.writer(csv_file)
-        writer. writerow(["Seed","LOF_AUC", "KNN_AUC", "MO_GAAL_AUC", "AnoGAN_AUC"])
+        writer. writerow(["Seed","LOF_AUC", "LOF_50", "LOF_100", "LOF_500", "KNN_AUC", "MO_GAAL_AUC", "AnoGAN_AUC"])
         
-    for i in range(10):
+    for i in range(5):
         print("---------- " + "start run " + data_path + " " + str(i) + " ----------")
         seed += 111
         initialize(seed)
@@ -96,9 +109,12 @@ def main():
     arrythmia_path = "./Resources/Datasets/Arrhythmia_withoutdupl_norm_02_v01.arff"
     wave_path = "./Resources/Datasets/Waveform_withoutdupl_norm_v01.arff"
     internet_ads_path = "./Resources/Datasets/InternetAds_withoutdupl_norm_02_v01.arff"
-    result_arrythmia = "./Results/Run_3/Arrythmia.csv"
-    result_waveform = "./Results/Run_3/Waveform.csv"
-    result_internet_ads = "./Results/Run_3/Internet_ads.csv"
+    spambase_path = "./Resources/Datasets/SpamBase_withoutdupl_norm_02_v01.arff"
+    
+    result_arrythmia = "./Results/Run_4/Arrythmia.csv"
+    result_waveform = "./Results/Run_4/Waveform.csv"
+    result_internet_ads = "./Results/Run_4/Internet_ads.csv"
+    result_spambase = "./Results/Run_4/Spambase.csv"
 
     if str(sys.argv[1]) != "0":
         experiment(arrythmia_path,result_arrythmia)
@@ -106,6 +122,8 @@ def main():
         experiment(wave_path,result_waveform)
     if str(sys.argv[3]) != "0":
         experiment(internet_ads_path,result_internet_ads)
+    if str(sys.argv[4]) != "0":
+        experiment(spambase_path,result_spambase)
         
     
     
