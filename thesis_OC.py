@@ -71,19 +71,19 @@ def pipeline(dataset, seed, ground_truth, testset):
     AUC_scores = np.append(AUC_scores, AUC(ground_truth, knn_model.decision_function(testset)))
     
     initialize(seed)
-    mogaal_model = MO_GAAL(lr_g = 0.01, stop_epochs=50)
+    mogaal_model = MO_GAAL(lr_g = 0.01, stop_epochs=70)
     mogaal_model.fit(dataset.data)
     AUC_scores = np.append(AUC_scores, AUC(ground_truth, mogaal_model.decision_function(testset)))
     
     initialize(seed)
     anogan_model = AnoGAN()
     anogan_model.fit(dataset.data)
-    AUC_scores = np.append(AUC_scores, AUC(dataset.ground_truth, anogan_model.decision_function(dataset.data)))
+    AUC_scores = np.append(AUC_scores, AUC(ground_truth, anogan_model.decision_function(dataset.data)))
     
     initialize(seed)
     svdd_model = DeepSVDD()
     svdd_model.fit(dataset.data)
-    AUC_scores = np.append(AUC_scores, AUC(dataset.ground_truth, svdd_model.decision_function(dataset.data)))
+    AUC_scores = np.append(AUC_scores, AUC(ground_truth, svdd_model.decision_function(dataset.data)))
     
     return AUC_scores
 
@@ -117,7 +117,7 @@ def experiment(data_path, result_path):
     # start pipeline and write to csv
     with open(result_path, "a", newline = "") as csv_file:
         writer = csv.writer(csv_file)
-        writer. writerow(["Seed","LOF_AUC", "LOF_50", "LOF_100", "LOF_500", "KNN_AUC", "MO_GAAL_AUC", "AnoGAN_AUC"])
+        writer. writerow(["Seed","LOF_AUC", "LOF_50", "LOF_100", "LOF_500", "KNN_AUC", "MO_GAAL_AUC", "AnoGAN_AUC", "DeepSVDD_AUC"])
         
     for i in range(len(seeds)):
         print("---------- " + "start run " + data_path + " " + str(i) + " ----------")
