@@ -47,43 +47,43 @@ def pipeline(dataset, seed, ground_truth, testset):
     
     initialize(seed)
     lof_model = LOF()
-    lof_model.fit(dataset.data)
+    lof_model.fit(dataset)
     AUC_scores = np.append(AUC_scores, AUC(ground_truth, lof_model.decision_function(testset)))
     
     initialize(seed)
     fb50_model = FeatureBagging(n_estimators=50)
-    fb50_model.fit(dataset.data)
+    fb50_model.fit(dataset)
     AUC_scores = np.append(AUC_scores, AUC(ground_truth, fb50_model.decision_function(testset)))
     
     initialize(seed)
     fb100_model = FeatureBagging(n_estimators=100)
-    fb100_model.fit(dataset.data)
+    fb100_model.fit(dataset)
     AUC_scores = np.append(AUC_scores, AUC(ground_truth, fb100_model.decision_function(testset)))
     
     initialize(seed)
     fb500_model = FeatureBagging(n_estimators=500)
-    fb500_model.fit(dataset.data)
+    fb500_model.fit(dataset)
     AUC_scores = np.append(AUC_scores, AUC(ground_truth, fb500_model.decision_function(testset)))
     
     initialize(seed)
     knn_model = KNN()
-    knn_model.fit(dataset.data)
+    knn_model.fit(dataset)
     AUC_scores = np.append(AUC_scores, AUC(ground_truth, knn_model.decision_function(testset)))
     
     initialize(seed)
-    mogaal_model = MO_GAAL(lr_g = 0.01, stop_epochs=70)
-    mogaal_model.fit(dataset.data)
+    mogaal_model = MO_GAAL(lr_g = 0.01, stop_epochs=50)
+    mogaal_model.fit(dataset)
     AUC_scores = np.append(AUC_scores, AUC(ground_truth, mogaal_model.decision_function(testset)))
     
     initialize(seed)
     anogan_model = AnoGAN()
-    anogan_model.fit(dataset.data)
-    AUC_scores = np.append(AUC_scores, AUC(ground_truth, anogan_model.decision_function(dataset.data)))
+    anogan_model.fit(dataset)
+    AUC_scores = np.append(AUC_scores, AUC(ground_truth, anogan_model.decision_function(testset)))
     
     initialize(seed)
     svdd_model = DeepSVDD()
-    svdd_model.fit(dataset.data)
-    AUC_scores = np.append(AUC_scores, AUC(ground_truth, svdd_model.decision_function(dataset.data)))
+    svdd_model.fit(dataset)
+    AUC_scores = np.append(AUC_scores, AUC(ground_truth, svdd_model.decision_function(testset)))
     
     return AUC_scores
 
