@@ -97,9 +97,9 @@ def experiment(data_path, result_path):
     #--------------------------------------------------------
     # prepare data
     (prior, prior_labels), (test, test_labels) = tf.keras.datasets.fashion_mnist.load_data()
-    outlier = 3
+    inlier = 3
     
-    idx = prior_labels == outlier
+    idx = np.where(prior_labels == inlier)
     train = prior[idx].copy() / 255
     nsamples, nx, ny = np.shape(train)
     train = train.reshape(nsamples, nx*ny)
@@ -110,8 +110,8 @@ def experiment(data_path, result_path):
     
     # DONT USE 1 OR 0 AS INLIER
     ground_truth = test_labels.copy()
-    ground_truth[ground_truth != outlier] = 1
-    ground_truth[ground_truth == outlier] = 0
+    ground_truth[ground_truth != inlier] = 1
+    ground_truth[ground_truth == inlier] = 0
     
     #--------------------------------------------------------
     # start pipeline and write to csv
