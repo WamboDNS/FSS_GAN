@@ -102,6 +102,8 @@ def experiment(data_path):
     seeds =[777, 45116, 4403, 92879, 34770]
     #--------------------------------------------------------
     # prepare data
+    ''' The following block is for Fashion MNIST'''
+    '''
     (prior, prior_labels), (test, test_labels) = tf.keras.datasets.fashion_mnist.load_data()
     inlier = 6
     
@@ -118,8 +120,29 @@ def experiment(data_path):
     ground_truth = test_labels.copy()
     ground_truth[ground_truth != inlier] = 1
     ground_truth[ground_truth == inlier] = 0
-    
+    '''
     #--------------------------------------------------------
+    
+    (prior, prior_labels), (test, test_labels) = tf.keras.datasets.cifar10.load_data() #tf.keras.datasets.fashion_mnist.load_data()
+    inlier = 6
+    idx = np.where(prior_labels == inlier)
+
+    train = prior[idx[0]].copy()
+
+    print(np.shape(train))
+    print(len(train))
+    nsamples, nx, ny, nz = np.shape(train)
+    train = train.reshape(nsamples, nx*ny*nz) / 255
+        
+
+    test_copy = test.copy() / 255
+    nsamples, nx, ny, nz = np.shape(test_copy)
+    test_copy = test_copy.reshape(nsamples, nx*ny*nz)
+        
+        # DONT USE 1 OR 0 AS INLIER
+    ground_truth = test_labels.copy()
+    ground_truth[ground_truth != inlier] = 1
+    ground_truth[ground_truth == inlier] = 0
     
     
     # start pipeline and write to csv
@@ -139,7 +162,8 @@ def experiment(data_path):
 def main():
     
     fashion_mnist_path = "/Fashion_MNIST.csv"
-    experiment(fashion_mnist_path)
+    cifar_path = "/Cifar10.csv"
+    experiment(cifar_path)
     
     
 if __name__ == "__main__":
