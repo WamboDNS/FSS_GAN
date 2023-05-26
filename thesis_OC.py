@@ -16,7 +16,6 @@ from datetime import date
 tf.debugging.experimental.disable_dump_debug_info
 warnings.filterwarnings("ignore")
 
-result_path = "./Results/Run_" + str(date.today())
 
 printParams = True
 
@@ -111,7 +110,7 @@ def pipeline(dataset, seed, inlier_class, ground_truth, testset):
     The backbone of the experiment. Choose seeds, load and prepare data, start the pipeline and
     write AUC values to a csv.
 '''
-def experiment(data_path, inlier):
+def experiment(data_path, inlier, result_path):
     seeds =[777, 45116, 4403, 92879, 34770]
     #--------------------------------------------------------
     # prepare data
@@ -135,24 +134,34 @@ def experiment(data_path, inlier):
     ground_truth[ground_truth == inlier] = 0
     '''
     #--------------------------------------------------------
-    
-    (prior, prior_labels), (test, test_labels) = tf.keras.datasets.cifar10.load_data() #tf.keras.datasets.fashion_mnist.load_data()
+    if str(sys.argv[1]) == "C":
+        (prior, prior_labels), (test, test_labels) = tf.keras.datasets.cifar10.load_data() 
+    else:
+        (prior, prior_labels), (test, test_labels) = tf.keras.datasets.fashion_mnist.load_data()
 
     idx = np.where(prior_labels == inlier)
 
-    train = prior[idx[0]].copy()
+    train = prior[idx[0]].copy() / 255
 
     print(np.shape(train))
     print(len(train))
-    nsamples, nx, ny, nz = np.shape(train)
-    train = train.reshape(nsamples, nx*ny*nz) / 255
+    if str(sys.argv[1]) == "C":
+        nsamples, nx, ny, nz = np.shape(train)
+        train = train.reshape(nsamples, nx*ny*nz)
+    else: 
+        nsamples, nx, ny = np.shape(test_copy)
+        test_copy = test_copy.reshape(nsamples, nx*ny)
         
 
     test_copy = test.copy() / 255
-    nsamples, nx, ny, nz = np.shape(test_copy)
-    test_copy = test_copy.reshape(nsamples, nx*ny*nz)
-        
+    if str(sys.argv[1]) == "C":
+        nsamples, nx, ny, nz = np.shape(test_copy)
+        test_copy = test_copy.reshape(nsamples, nx*ny*nz)
+    else: 
+        nsamples, nx, ny = np.shape(test_copy)
+        test_copy = test_copy.reshape(nsamples, nx*ny)
         # DONT USE 1 OR 0 AS INLIER
+        
     ground_truth = test_labels.copy()
     ground_truth[ground_truth != inlier] = 1
     ground_truth[ground_truth == inlier] = 0
@@ -175,7 +184,7 @@ def experiment(data_path, inlier):
 def main():
     
     inlier = int(sys.argv[2])
-    result_path += "/class_"+str(inlier)
+    result_path = "./Results/Run_" + str(date.today()) + "/class_"+str(inlier)
     if not os.path.exists(result_path):
         os.makedirs(result_path)
     if inlier < 2 or inlier > 9:
@@ -184,8 +193,6 @@ def main():
     
     fashion_mnist_path = "/Fashion_MNIST.csv"
     cifar_path = "/Cifar10.csv"
-    experiment(cifar_path)
-    
     gpu = "/device:GPU:0"
     
     if int(sys.argv[3]) == 1:
@@ -193,10 +200,9 @@ def main():
     
     with tf.device(gpu):
         if str(sys.argv[1]) == "F":
-            
-            experiment(fashion_mnist_path)
+            experiment(fashion_mnist_path, inlier, result_path)
         if str(sys.argv[1]) == "C":
-            experiment(cifar_path)
+            experiment(cifar_path, inlier, result_path)
         print("End")
     
     
