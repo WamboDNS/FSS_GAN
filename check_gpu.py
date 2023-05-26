@@ -5,7 +5,7 @@ print(tf.config.list_physical_devices('GPU'))
 print("Built with CUDA: " + str(tf.test.is_built_with_cuda()))
     
 gpu = "/device:GPU:0"
-if int(sys.argv[3]) == 1:
+if int(sys.argv[1]) == 1:
     gpu = "/device:GPU:1"
     
 with tf.device(gpu):
