@@ -17,9 +17,7 @@ tf.debugging.experimental.disable_dump_debug_info
 warnings.filterwarnings("ignore")
 
 result_path = "./Results/Run_" + str(date.today())
-if not os.path.exists(result_path):
-    os.mkdir(result_path)
-    
+
 printParams = True
 
 
@@ -113,7 +111,7 @@ def pipeline(dataset, seed, inlier_class, ground_truth, testset):
     The backbone of the experiment. Choose seeds, load and prepare data, start the pipeline and
     write AUC values to a csv.
 '''
-def experiment(data_path):
+def experiment(data_path, inlier):
     seeds =[777, 45116, 4403, 92879, 34770]
     #--------------------------------------------------------
     # prepare data
@@ -139,7 +137,7 @@ def experiment(data_path):
     #--------------------------------------------------------
     
     (prior, prior_labels), (test, test_labels) = tf.keras.datasets.cifar10.load_data() #tf.keras.datasets.fashion_mnist.load_data()
-    inlier = 6
+
     idx = np.where(prior_labels == inlier)
 
     train = prior[idx[0]].copy()
@@ -176,9 +174,30 @@ def experiment(data_path):
 ########### REMOVE CLASS, ADD PARAMS.TXT
 def main():
     
+    inlier = int(sys.argv[2])
+    result_path += "/class_"+str(inlier)
+    if not os.path.exists(result_path):
+        os.makedirs(result_path)
+    if inlier < 2 or inlier > 9:
+        print("Class not allowed")
+        quit()
+    
     fashion_mnist_path = "/Fashion_MNIST.csv"
     cifar_path = "/Cifar10.csv"
     experiment(cifar_path)
+    
+    gpu = "/device:GPU:0"
+    
+    if int(sys.argv[3]) == 1:
+        gpu = "/device:GPU:1"
+    
+    with tf.device(gpu):
+        if str(sys.argv[1]) == "F":
+            
+            experiment(fashion_mnist_path)
+        if str(sys.argv[1]) == "C":
+            experiment(cifar_path)
+        print("End")
     
     
 if __name__ == "__main__":
