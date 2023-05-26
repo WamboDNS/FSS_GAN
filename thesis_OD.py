@@ -21,6 +21,8 @@ if not os.path.exists(result_path):
     os.mkdir(result_path)
 input_path = "./Resources/Datasets"
 
+printParams = True
+
 
 
 class CustomData():
@@ -104,6 +106,17 @@ def run(dataset, seed):
     anogan_model.fit(dataset.data)
     AUC_scores = np.append(AUC_scores, AUC(dataset.ground_truth, anogan_model.decision_function(dataset.data)))
     
+    if printParams:
+        with open(result_path + "/Params.txt", "a", newline = "") as txt_file:
+            txt_file.writelines("LOF: " + str(lof_model.get_params()) + "\n")
+            txt_file.writelines("FB50: " + str(fb50_model.get_params()) + "\n")
+            txt_file.writelines("FB100: " + str(fb100_model.get_params()) + "\n")
+            txt_file.writelines("FB500: " + str(fb500_model.get_params()) + "\n")
+            txt_file.writelines("MO_GAAL: " + str(mogaal_model.get_params()) + "\n")
+            txt_file.writelines("AnoGAN: " + str(anogan_model.get_params()) + "\n")
+            #txt_file.writelines("Deep SVDD: " + str(lof_model.get_params()) + "\n")
+        printParams = False
+        
     return AUC_scores
 
 
@@ -144,5 +157,3 @@ def main():
     
 if __name__ == "__main__":
     main()
-    
-    

@@ -19,6 +19,8 @@ warnings.filterwarnings("ignore")
 result_path = "./Results/Run_" + str(date.today())
 if not os.path.exists(result_path):
     os.mkdir(result_path)
+    
+printParams = True
 
 
 '''
@@ -47,9 +49,10 @@ def set_seed(seed):
 '''
     Pipeline to run the models one by one. Store AUC values in an array. Reseed before every new model.
 '''
-def pipeline(dataset, seed, ground_truth, testset):
+def pipeline(dataset, seed, inlier_class, ground_truth, testset):
     AUC_scores = np.empty((0))
     AUC_scores = np.append(AUC_scores, seed)
+    AUC_scores = np.append(AUC_scores, inlier_class)
     
     set_seed(seed)
     lof_model = LOF()
@@ -91,6 +94,17 @@ def pipeline(dataset, seed, ground_truth, testset):
     svdd_model.fit(dataset)
     AUC_scores = np.append(AUC_scores, AUC(ground_truth, svdd_model.decision_function(testset)))
     
+    if printParams:
+        with open(result_path + "/Params.txt", "a", newline = "") as txt_file:
+            txt_file.writelines("LOF: " + str(lof_model.get_params()) + "\n")
+            txt_file.writelines("FB50: " + str(fb50_model.get_params()) + "\n")
+            txt_file.writelines("FB100: " + str(fb100_model.get_params()) + "\n")
+            txt_file.writelines("FB500: " + str(fb500_model.get_params()) + "\n")
+            txt_file.writelines("MO_GAAL: " + str(mogaal_model.get_params()) + "\n")
+            txt_file.writelines("AnoGAN: " + str(anogan_model.get_params()) + "\n")
+            txt_file.writelines("Deep SVDD: " + str(lof_model.get_params()) + "\n")
+        printParams = False
+        
     return AUC_scores
 
 
@@ -148,17 +162,17 @@ def experiment(data_path):
     # start pipeline and write to csv
     with open(result_path + data_path, "a", newline = "") as csv_file:
         writer = csv.writer(csv_file)
-        writer. writerow(["Seed","LOF_AUC", "LOF_50", "LOF_100", "LOF_500", "KNN_AUC", "MO_GAAL_AUC", "AnoGAN_AUC", "DeepSVDD_AUC"])
+        writer. writerow(["Seed", "Class", "LOF_AUC", "LOF_50", "LOF_100", "LOF_500", "KNN_AUC", "MO_GAAL_AUC", "AnoGAN_AUC", "DeepSVDD_AUC"])
         
     for i in range(len(seeds)):
         print("---------- " + "start run " + data_path + " " + str(i) + " ----------")
-        output = pipeline(train, seeds[i], ground_truth, test_copy)
+        output = pipeline(train, seeds[i], inlier, ground_truth, test_copy)
         with open(result_path + data_path, "a", newline = "") as csv_file:
             writer = csv.writer(csv_file)
             writer. writerow(output)
         print("---------- " + "end run " + data_path + " " + str(i) + " ----------")
 
-
+########### REMOVE CLASS, ADD PARAMS.TXT
 def main():
     
     fashion_mnist_path = "/Fashion_MNIST.csv"
