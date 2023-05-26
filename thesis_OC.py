@@ -36,10 +36,6 @@ def set_seed(seed):
     tf.keras.utils.set_random_seed(seed) #seeds numpy, random and tf all at once
     tf.config.experimental.enable_op_determinism()
     
-    tf.config.threading.set_inter_op_parallelism_threads(1)
-    tf.config.threading.set_intra_op_parallelism_threads(1)
-    os.environ['TF_DETERMINISTIC_OPS'] = '1'
-    os.environ['TF_CUDNN_DETERMINISTIC'] = '1'
     os.environ["PYTHONHASSEED"] = str(seed)
     
     
@@ -182,6 +178,10 @@ def experiment(data_path, inlier, result_path):
 
 ########### REMOVE CLASS, ADD PARAMS.TXT
 def main():
+    tf.config.threading.set_inter_op_parallelism_threads(1)
+    tf.config.threading.set_intra_op_parallelism_threads(1)
+    os.environ['TF_DETERMINISTIC_OPS'] = '1'
+    os.environ['TF_CUDNN_DETERMINISTIC'] = '1'
     
     inlier = int(sys.argv[2])
     result_path = "./Results/Run_" + str(date.today()) + "/class_"+str(inlier)
