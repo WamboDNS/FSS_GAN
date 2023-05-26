@@ -112,6 +112,7 @@ def run(dataset, seed):
             txt_file.writelines("FB50: " + str(fb50_model.get_params()) + "\n")
             txt_file.writelines("FB100: " + str(fb100_model.get_params()) + "\n")
             txt_file.writelines("FB500: " + str(fb500_model.get_params()) + "\n")
+            txt_file.writelines("KNN: " + str(knn_model.get_params()) + "\n")
             txt_file.writelines("MO_GAAL: " + str(mogaal_model.get_params()) + "\n")
             txt_file.writelines("AnoGAN: " + str(anogan_model.get_params()) + "\n")
             #txt_file.writelines("Deep SVDD: " + str(lof_model.get_params()) + "\n")
