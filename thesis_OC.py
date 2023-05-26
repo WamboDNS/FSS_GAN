@@ -46,7 +46,7 @@ def set_seed(seed):
 '''
     Pipeline to run the models one by one. Store AUC values in an array. Reseed before every new model.
 '''
-def pipeline(dataset, seed, inlier_class, ground_truth, testset):
+def pipeline(dataset, seed, inlier_class, ground_truth, testset, result_path):
     AUC_scores = np.empty((0))
     AUC_scores = np.append(AUC_scores, seed)
     AUC_scores = np.append(AUC_scores, inlier_class)
@@ -174,7 +174,7 @@ def experiment(data_path, inlier, result_path):
         
     for i in range(len(seeds)):
         print("---------- " + "start run " + data_path + " " + str(i) + " ----------")
-        output = pipeline(train, seeds[i], inlier, ground_truth, test_copy)
+        output = pipeline(train, seeds[i], inlier, ground_truth, test_copy, result_path)
         with open(result_path + data_path, "a", newline = "") as csv_file:
             writer = csv.writer(csv_file)
             writer. writerow(output)
