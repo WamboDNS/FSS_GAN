@@ -145,7 +145,7 @@ def experiment(data_path, inlier, result_path):
         nsamples, nx, ny, nz = np.shape(train)
         train = train.reshape(nsamples, nx*ny*nz)
     else: 
-        nsamples, nx, ny = np.shape(test_copy)
+        nsamples, nx, ny = np.shape(train)
         train = train.reshape(nsamples, nx*ny)
         
 
