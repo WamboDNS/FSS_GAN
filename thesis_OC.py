@@ -17,9 +17,6 @@ tf.debugging.experimental.disable_dump_debug_info
 warnings.filterwarnings("ignore")
 
 
-printParams = True
-
-
 '''
     Calculate AUC and print it
 '''
@@ -42,7 +39,7 @@ def set_seed(seed):
 '''
     Pipeline to run the models one by one. Store AUC values in an array. Reseed before every new model.
 '''
-def pipeline(dataset, seed, inlier_class, ground_truth, testset, result_path):
+def pipeline(dataset, seed, inlier_class, ground_truth, testset, result_path, printer):
     AUC_scores = np.empty((0))
     AUC_scores = np.append(AUC_scores, seed)
     AUC_scores = np.append(AUC_scores, inlier_class)
@@ -87,8 +84,8 @@ def pipeline(dataset, seed, inlier_class, ground_truth, testset, result_path):
     svdd_model.fit(dataset)
     AUC_scores = np.append(AUC_scores, AUC(ground_truth, svdd_model.decision_function(testset)))
     
-    if printParams:
-        with open(result_path + "/Params.txt", "a", newline = "") as txt_file:
+    if printer == 1:
+        with open(result_path + "/Params_" + str(inlier_class) + "_" + str(sys.argv[1]) + "_" +".txt", "a", newline = "") as txt_file:
             txt_file.writelines("LOF: " + str(lof_model.get_params()) + "\n")
             txt_file.writelines("FB50: " + str(fb50_model.get_params()) + "\n")
             txt_file.writelines("FB100: " + str(fb100_model.get_params()) + "\n")
@@ -97,7 +94,6 @@ def pipeline(dataset, seed, inlier_class, ground_truth, testset, result_path):
             txt_file.writelines("MO_GAAL: " + str(mogaal_model.get_params()) + "\n")
             txt_file.writelines("AnoGAN: " + str(anogan_model.get_params()) + "\n")
             txt_file.writelines("Deep SVDD: " + str(lof_model.get_params()) + "\n")
-        printParams = False
         
     return AUC_scores
 
@@ -107,40 +103,17 @@ def pipeline(dataset, seed, inlier_class, ground_truth, testset, result_path):
     write AUC values to a csv.
 '''
 def experiment(data_path, inlier, result_path):
+    printer = 1
     seeds =[777, 45116, 4403, 92879, 34770]
-    #--------------------------------------------------------
-    # prepare data
-    ''' The following block is for Fashion MNIST'''
-    '''
-    (prior, prior_labels), (test, test_labels) = tf.keras.datasets.fashion_mnist.load_data()
-    inlier = 6
-    
-    idx = np.where(prior_labels == inlier)
-    train = prior[idx].copy() / 255
-    nsamples, nx, ny = np.shape(train)
-    train = train.reshape(nsamples, nx*ny)
-    
-    test_copy = test.copy() / 255
-    nsamples, nx, ny = np.shape(test_copy)
-    test_copy = test_copy.reshape(nsamples, nx*ny)
-    
-    # DONT USE 1 OR 0 AS INLIER
-    ground_truth = test_labels.copy()
-    ground_truth[ground_truth != inlier] = 1
-    ground_truth[ground_truth == inlier] = 0
-    '''
-    #--------------------------------------------------------
+
     if str(sys.argv[1]) == "C":
         (prior, prior_labels), (test, test_labels) = tf.keras.datasets.cifar10.load_data() 
     else:
         (prior, prior_labels), (test, test_labels) = tf.keras.datasets.fashion_mnist.load_data()
 
     idx = np.where(prior_labels == inlier)
-
     train = prior[idx[0]].copy() / 255
 
-    print(np.shape(train))
-    print(len(train))
     if str(sys.argv[1]) == "C":
         nsamples, nx, ny, nz = np.shape(train)
         train = train.reshape(nsamples, nx*ny*nz)
@@ -156,8 +129,9 @@ def experiment(data_path, inlier, result_path):
     else: 
         nsamples, nx, ny = np.shape(test_copy)
         test_copy = test_copy.reshape(nsamples, nx*ny)
-        # DONT USE 1 OR 0 AS INLIER
         
+        
+        # DONT USE 1 OR 0 AS INLIER  
     ground_truth = test_labels.copy()
     ground_truth[ground_truth != inlier] = 1
     ground_truth[ground_truth == inlier] = 0
@@ -170,7 +144,8 @@ def experiment(data_path, inlier, result_path):
         
     for i in range(len(seeds)):
         print("---------- " + "start run " + data_path + " " + str(i) + " ----------")
-        output = pipeline(train, seeds[i], inlier, ground_truth, test_copy, result_path)
+        output = pipeline(train, seeds[i], inlier, ground_truth, test_copy, result_path, printer)
+        printer = -1
         with open(result_path + data_path, "a", newline = "") as csv_file:
             writer = csv.writer(csv_file)
             writer. writerow(output)
@@ -183,14 +158,6 @@ def main():
     os.environ['TF_DETERMINISTIC_OPS'] = '1'
     os.environ['TF_CUDNN_DETERMINISTIC'] = '1'
     
-    inlier = int(sys.argv[2])
-    result_path = "./Results/Run_" + str(date.today()) + "/class_"+str(inlier)
-    if not os.path.exists(result_path):
-        os.makedirs(result_path)
-    if inlier < 2 or inlier > 9:
-        print("Class not allowed")
-        quit()
-    
     fashion_mnist_path = "/Fashion_MNIST.csv"
     cifar_path = "/Cifar10.csv"
     gpu = "/device:GPU:0"
@@ -200,9 +167,17 @@ def main():
     
     with tf.device(gpu):
         if str(sys.argv[1]) == "F":
-            experiment(fashion_mnist_path, inlier, result_path)
+            for inlier in range(9,5,-1):
+                result_path = "./Results/Run_" + str(date.today()) + "/class_"+str(inlier)
+                if not os.path.exists(result_path):
+                    os.makedirs(result_path)
+                experiment(fashion_mnist_path, inlier, result_path)
         if str(sys.argv[1]) == "C":
-            experiment(cifar_path, inlier, result_path)
+            for inlier in range(9,5,-1):
+                result_path = "./Results/Run_" + str(date.today()) + "/class_"+str(inlier)
+                if not os.path.exists(result_path):
+                    os.makedirs(result_path)
+                experiment(cifar_path, inlier, result_path)
         print("End")
     
     
