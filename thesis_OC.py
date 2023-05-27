@@ -162,18 +162,18 @@ def main():
     cifar_path = "/Cifar10.csv"
     gpu = "/device:GPU:0"
     
-    if int(sys.argv[3]) == 1:
+    if int(sys.argv[2]) == 1:
         gpu = "/device:GPU:1"
     
     with tf.device(gpu):
         if str(sys.argv[1]) == "F":
-            for inlier in range(9,5,-1):
+            for inlier in range(5,1,-1):
                 result_path = "./Results/Run_" + str(date.today()) + "/class_"+str(inlier)
                 if not os.path.exists(result_path):
                     os.makedirs(result_path)
                 experiment(fashion_mnist_path, inlier, result_path)
         if str(sys.argv[1]) == "C":
-            for inlier in range(9,5,-1):
+            for inlier in range(5,1,-1):
                 result_path = "./Results/Run_" + str(date.today()) + "/class_"+str(inlier)
                 if not os.path.exists(result_path):
                     os.makedirs(result_path)
