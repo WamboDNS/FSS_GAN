@@ -19,12 +19,10 @@ warnings.filterwarnings("ignore")
 
 
 parser = argparse.ArgumentParser(description="One class classification")
-parser.add_argument("filename", help = "Name of the script")
 parser.add_argument("--gpu", help="GPU to be used, indexed from 0",default="0")
 parser.add_argument("--data", help="Data set to be used. C for Cifar, F for Fashion MNIST")
 parser.add_argument("--start", help = "Start class, count down from here to end class incl", type=int, default=9)
 parser.add_argument("--end", help = "Last class of the run", type = int, default = 0)
-
 args = parser.parse_args()
 
 
@@ -42,8 +40,6 @@ def AUC(truth, decision):
 '''
 def set_seed(seed):
     tf.keras.utils.set_random_seed(seed) #seeds numpy, random and tf all at once
-    tf.config.experimental.enable_op_determinism()
-    
     os.environ["PYTHONHASSEED"] = str(seed)
     
     
@@ -142,7 +138,7 @@ def experiment(data_path, inlier, result_path):
         
     ground_truth = np.ones(len(test_labels))
     inlier_idx = np.where(test_labels == inlier)
-    ground_truth[inlier_idx] = 0
+    ground_truth[inlier_idx[0]] = 0
     
     
     
@@ -173,6 +169,7 @@ def buildPath(inlier):
 def main():
     tf.config.threading.set_inter_op_parallelism_threads(1)
     tf.config.threading.set_intra_op_parallelism_threads(1)
+    tf.config.experimental.enable_op_determinism()
     os.environ['TF_DETERMINISTIC_OPS'] = '1'
     os.environ['TF_CUDNN_DETERMINISTIC'] = '1'
     
