@@ -67,7 +67,7 @@ def pipeline(dataset, seeds, inlier_class, ground_truth, testset, result_path):
     # store params of each model in a file
         with open(result_path + "/Params_" + str(inlier_class) + "_" + args.data  +".txt", "a", newline = "") as txt_file:
             for i in range(len(avg_AUC)):
-                txt_file.writelines("lr_g=" + str(params[i][0]) + "; stop_epochs=" + str(params[i][1])+ "; average AUC=" + str(avg_AUC[i]))
+                txt_file.writelines("lr_g=" + str(params[i][0]) + "; stop_epochs=" + str(params[i][1])+ "; average AUC=" + str(avg_AUC[i]) + "\n")
 
 
 '''
@@ -136,11 +136,11 @@ def main():
     with tf.device(gpu):
         if args.data == "F":
             for inlier in range(start_class,end_class-1,-1):
-                result_path = buildPath(inlier, fashion_mnist_path)
+                result_path = buildPath(inlier, "_F")
                 experiment(inlier, result_path)
         if args.data == "C":
             for inlier in range(start_class,end_class-1,-1):
-                result_path = buildPath(inlier, cifar_path)
+                result_path = buildPath(inlier, "_C")
                 experiment(inlier, result_path)
         print("End")
     
