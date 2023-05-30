@@ -63,11 +63,14 @@ def pipeline(dataset, seeds, inlier_class, ground_truth, testset, result_path):
                 AUC_scores = np.append(AUC_scores, AUC(ground_truth, mogaal_model.decision_function(testset)))
             avg_AUC = np.append(avg_AUC, np.average(AUC_scores))
             params.append((lr,n))
+            
+    print(params)
+    print(avg_AUC)
     
     # store params of each model in a file
-        with open(result_path + "/Params_" + str(inlier_class) + "_" + args.data  +".txt", "a", newline = "") as txt_file:
-            for i in range(len(avg_AUC)):
-                txt_file.writelines("lr_g=" + str(params[i][0]) + "; stop_epochs=" + str(params[i][1])+ "; average AUC=" + str(avg_AUC[i]) + "\n")
+    with open(result_path + "/Params_" + str(inlier_class) + "_" + args.data  +".txt", "a", newline = "") as txt_file:
+        for i in range(len(params)):
+            txt_file.writelines("lr_g=" + str(params[i][0]) + "; stop_epochs=" + str(params[i][1])+ "; average AUC=" + str(avg_AUC[i]) + "\n")
 
 
 '''
