@@ -48,7 +48,7 @@ def set_seed(seed):
 '''
 def pipeline(dataset, seeds, inlier_class, ground_truth, testset, result_path):
     learning_rates_g = [0.0001, 0.001, 0.01]
-    stop_epochs = [20,40,60,80,100]
+    stop_epochs = [1]#,40,60,80,100]
     
     avg_AUC = np.empty(0)
     params = []
