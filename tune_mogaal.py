@@ -47,8 +47,8 @@ def set_seed(seed):
     Pipeline to run the models one by one. Store AUC values in an array. Reseed before every new model.
 '''
 def pipeline(dataset, seeds, inlier_class, ground_truth, testset, result_path):
-    learning_rates_g = [0.01,0.1]#[0.0001, 0.001, 0.01]
-    stop_epochs = [1]#,40,60,80,100]
+    learning_rates_g = [0.0001, 0.001, 0.01]
+    stop_epochs = [20,40,60,80,100]
     
     avg_AUC = np.empty(0)
     params = []
@@ -78,7 +78,7 @@ def pipeline(dataset, seeds, inlier_class, ground_truth, testset, result_path):
     write AUC values to a csv.
 '''
 def experiment(inlier, result_path):
-    seeds =[777, 45116]#, 4403, 92879, 34770]
+    seeds =[777, 45116, 4403, 92879, 34770]
 
     # Load data set, convert data to fit the experiment (inlier class -> 0, other classes -> 1)
     #--------------------------------------------------------------
