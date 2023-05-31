@@ -116,7 +116,7 @@ def experiment(inlier, result_path):
     Build path used to store results and params automatically
 '''
 def buildPath(inlier,data_path):
-    result_path = "./Results/Tune_MO_GAAL_" + str(date.today()) + "/class_"+str(inlier)+data_path
+    result_path = "./Results/Tune_Ano_" + str(date.today()) + "/class_"+str(inlier)+data_path
     if not os.path.exists(result_path):
         os.makedirs(result_path)
     return result_path
