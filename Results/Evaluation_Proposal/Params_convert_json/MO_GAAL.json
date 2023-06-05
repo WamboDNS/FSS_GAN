@@ -1,0 +1,1 @@
+{"contamination": 0.1, "k": 10, "lr_d": 0.01, "lr_g": 0.01, "momentum": 0.9, "stop_epochs": 50}

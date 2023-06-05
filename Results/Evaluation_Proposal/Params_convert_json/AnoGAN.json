@@ -1,0 +1,1 @@
+{"D_layers": [20, 10, 5], "G_layers": [20, 10, 3, 10, 20], "activation_hidden": "tanh", "batch_size": 32, "contamination": 0.1, "dropout_rate": 0.2, "epochs": 500, "epochs_query": 20, "index_D_layer_for_recon_error": 1, "latent_dim_G": 2, "learning_rate": 0.001, "learning_rate_query": 0.01, "output_activation": "None", "preprocessing": "False", "verbose": 0}
