@@ -1,0 +1,28 @@
+Deep SVDD: {'batch_size': 32, 'c': array([0.49880263, 0.14070936, 0.49502623, 0.11580437, 0.67511874,
+       0.3428045 , 0.39826086, 0.66592896, 1.0724059 , 0.3158685 ,
+       0.5793147 , 0.76932037, 0.2585418 , 0.3191421 , 0.48731086,
+       0.59714127, 0.266069  , 0.29563454, 0.12594998, 0.25181124,
+       0.18966636, 0.20476414, 0.1641334 , 0.34711707, 0.65465295,
+       0.48577434, 0.7262061 , 0.12351393, 0.32504538, 0.72112066,
+       0.5062771 , 0.13790222], dtype=float32), 'contamination': 0.1, 'dropout_rate': 0.2, 'epochs': 100, 'hidden_activation': 'relu', 'hidden_neurons': [64, 32], 'l2_regularizer': 0.1, 'optimizer': 'adam', 'output_activation': 'sigmoid', 'preprocessing': True, 'random_state': None, 'use_ae': False, 'validation_size': 0.1, 'verbose': 1}
+Deep SVDD: {'batch_size': 32, 'c': array([0.21516335, 0.18887031, 0.2823772 , 0.1       , 0.34964052,
+       0.2226818 , 0.23877926, 0.40121204, 0.6236107 , 0.21049383,
+       0.38828748, 0.5433242 , 0.15015137, 0.20074044, 0.4226116 ,
+       0.45449027, 0.22341605, 0.1709464 , 0.1       , 0.21036072,
+       0.10668258, 0.10028449, 0.1       , 0.22437578, 0.5219382 ,
+       0.19240852, 0.4801682 , 0.1       , 0.15386534, 0.42177987,
+       0.30852455, 0.1       ], dtype=float32), 'contamination': 0.1, 'dropout_rate': 0.2, 'epochs': 100, 'hidden_activation': 'relu', 'hidden_neurons': [64, 32], 'l2_regularizer': 0.1, 'optimizer': 'adam', 'output_activation': 'sigmoid', 'preprocessing': True, 'random_state': None, 'use_ae': False, 'validation_size': 0.1, 'verbose': 1}
+Deep SVDD: {'batch_size': 32, 'c': array([0.63227665, 0.18908976, 0.42414948, 0.11591167, 0.7209577 ,
+       0.33788294, 0.41554427, 0.8045094 , 1.1060122 , 0.34892377,
+       0.5913923 , 0.8402623 , 0.2567704 , 0.35536408, 0.6101367 ,
+       0.5650736 , 0.32799268, 0.3938832 , 0.16861166, 0.273189  ,
+       0.24262735, 0.21775842, 0.16244069, 0.31216308, 0.6943921 ,
+       0.48421317, 0.8186372 , 0.17847073, 0.38254267, 0.78811103,
+       0.6155677 , 0.1334912 ], dtype=float32), 'contamination': 0.1, 'dropout_rate': 0.2, 'epochs': 100, 'hidden_activation': 'relu', 'hidden_neurons': [64, 32], 'l2_regularizer': 0.1, 'optimizer': 'adam', 'output_activation': 'sigmoid', 'preprocessing': True, 'random_state': None, 'use_ae': False, 'validation_size': 0.1, 'verbose': 1}
+Deep SVDD: {'batch_size': 32, 'c': array([0.45806465, 0.16328721, 0.30326265, 0.1       , 0.4623588 ,
+       0.17969751, 0.24676499, 0.55948746, 0.7048265 , 0.21196076,
+       0.39904255, 0.5408615 , 0.12402745, 0.2620115 , 0.4251191 ,
+       0.33780894, 0.18990672, 0.29122838, 0.11988375, 0.18771783,
+       0.19395977, 0.16035496, 0.1       , 0.1851872 , 0.41974595,
+       0.29114076, 0.5160792 , 0.1       , 0.25110605, 0.4576205 ,
+       0.33267334, 0.1       ], dtype=float32), 'contamination': 0.1, 'dropout_rate': 0.2, 'epochs': 100, 'hidden_activation': 'relu', 'hidden_neurons': [64, 32], 'l2_regularizer': 0.1, 'optimizer': 'adam', 'output_activation': 'sigmoid', 'preprocessing': True, 'random_state': None, 'use_ae': False, 'validation_size': 0.1, 'verbose': 1}
