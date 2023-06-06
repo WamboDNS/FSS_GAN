@@ -67,7 +67,7 @@ def set_seed(seed):
 def run(dataset, seed, printer):
     AUC_scores = np.empty((0))
     AUC_scores = np.append(AUC_scores, seed)
-    '''
+    
     set_seed(seed)
     lof_model = LOF()
     lof_model.fit(dataset.data)
@@ -102,7 +102,7 @@ def run(dataset, seed, printer):
     anogan_model = AnoGAN()
     anogan_model.fit(dataset.data)
     AUC_scores = np.append(AUC_scores, AUC(dataset.ground_truth, anogan_model.decision_function(dataset.data)))
-    '''
+    
     set_seed(seed)
     svdd_model = DeepSVDD()
     svdd_model.fit(dataset.data)
@@ -110,13 +110,13 @@ def run(dataset, seed, printer):
     
     if printer == 1:
         with open(result_path + "/Params.txt", "a", newline = "") as txt_file:
-            #txt_file.writelines("LOF: " + str(lof_model.get_params()) + "\n")
-            #txt_file.writelines("FB50: " + str(fb50_model.get_params()) + "\n")
-            #txt_file.writelines("FB100: " + str(fb100_model.get_params()) + "\n")
-            #txt_file.writelines("FB500: " + str(fb500_model.get_params()) + "\n")
-            #txt_file.writelines("KNN: " + str(knn_model.get_params()) + "\n")
-            #txt_file.writelines("MO_GAAL: " + str(mogaal_model.get_params()) + "\n")
-            #txt_file.writelines("AnoGAN: " + str(anogan_model.get_params()) + "\n")
+            txt_file.writelines("LOF: " + str(lof_model.get_params()) + "\n")
+            txt_file.writelines("FB50: " + str(fb50_model.get_params()) + "\n")
+            txt_file.writelines("FB100: " + str(fb100_model.get_params()) + "\n")
+            txt_file.writelines("FB500: " + str(fb500_model.get_params()) + "\n")
+            txt_file.writelines("KNN: " + str(knn_model.get_params()) + "\n")
+            txt_file.writelines("MO_GAAL: " + str(mogaal_model.get_params()) + "\n")
+            txt_file.writelines("AnoGAN: " + str(anogan_model.get_params()) + "\n")
             txt_file.writelines("Deep SVDD: " + str(svdd_model.get_params()) + "\n")
         
     return AUC_scores
@@ -133,8 +133,7 @@ def experiment(data_path, result_csv):
     
     with open(result_path + result_csv, "a", newline = "") as csv_file:
         writer = csv.writer(csv_file)
-        #writer. writerow(["Seed","LOF_AUC", "LOF_50", "LOF_100", "LOF_500", "KNN_AUC", "MO_GAAL_AUC", "AnoGAN_AUC"])
-        writer.writerow(["Deep_SVDD_AUC"])
+        writer. writerow(["Seed","LOF_AUC", "LOF_50", "LOF_100", "LOF_500", "KNN_AUC", "MO_GAAL_AUC", "AnoGAN_AUC", "Deep_SVDD_AUC"])
         
     for i in range(len(seeds)):
         print("---------- " + "start run " + data_path + " " + str(i) + " ----------")
