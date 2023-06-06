@@ -64,7 +64,7 @@ def set_seed(seed):
 '''
     Pipeline to run the models one by one. Store AUC values in an array. Reseed before every new model.
 '''
-def run(dataset, seed):
+def run(dataset, seed, printer):
     AUC_scores = np.empty((0))
     AUC_scores = np.append(AUC_scores, seed)
     '''
@@ -108,7 +108,7 @@ def run(dataset, seed):
     svdd_model.fit(dataset.data)
     AUC_scores = np.append(AUC_scores, AUC(dataset.ground_truth, svdd_model.decision_function(dataset.data)))
     
-    if printParams:
+    if printer == 1:
         with open(result_path + "/Params.txt", "a", newline = "") as txt_file:
             #txt_file.writelines("LOF: " + str(lof_model.get_params()) + "\n")
             #txt_file.writelines("FB50: " + str(fb50_model.get_params()) + "\n")
@@ -118,7 +118,6 @@ def run(dataset, seed):
             #txt_file.writelines("MO_GAAL: " + str(mogaal_model.get_params()) + "\n")
             #txt_file.writelines("AnoGAN: " + str(anogan_model.get_params()) + "\n")
             txt_file.writelines("Deep SVDD: " + str(svdd_model.get_params()) + "\n")
-        printParams = False
         
     return AUC_scores
 
@@ -128,6 +127,7 @@ def run(dataset, seed):
     write AUC values to a csv.
 '''
 def experiment(data_path, result_csv):
+    printer=1
     dataset = CustomData(input_path + data_path)
     seeds =[777, 45116, 4403, 92879, 34770]
     
@@ -138,7 +138,8 @@ def experiment(data_path, result_csv):
         
     for i in range(len(seeds)):
         print("---------- " + "start run " + data_path + " " + str(i) + " ----------")
-        output = run(dataset, seeds[i])
+        output = run(dataset, seeds[i], printer)
+        printer = -1
         with open(result_path + data_path, "a", newline = "") as csv_file:
             writer = csv.writer(csv_file)
             writer. writerow(output)
