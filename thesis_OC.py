@@ -101,7 +101,7 @@ def pipeline(dataset, seed, inlier_class, ground_truth, testset, result_path, pr
             txt_file.writelines("KNN: " + str(knn_model.get_params()) + "\n")
             txt_file.writelines("MO_GAAL: " + str(mogaal_model.get_params()) + "\n")
             txt_file.writelines("AnoGAN: " + str(anogan_model.get_params()) + "\n")
-            txt_file.writelines("Deep SVDD: " + str(lof_model.get_params()) + "\n")
+            txt_file.writelines("Deep SVDD: " + str(svdd_model.get_params()) + "\n")
         
     return AUC_scores
 
