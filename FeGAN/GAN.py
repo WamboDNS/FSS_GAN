@@ -24,7 +24,7 @@ def parse_arguments():
     parser.add_argument("--lr_gen", type=float, default=0.01, help="Learning rate generator")
     parser.add_argument("--lr_dis", type=float, default=0.01, help="Learning rate discriminator")
     parser.add_argument("--stop_epochs", type=int, default = 30, help="Generator stops training after stop_epochs")
-    parser.add_argument("--k", type=int, default=10, help="Number of discriminators")
+    parser.add_argument("--k", type=int, default=30 , help="Number of discriminators")
     
     return parser.parse_args()
 
@@ -80,7 +80,7 @@ def load_data():
     return data_x, data_y
 
 '''
-    Plot the loss of the models. Generator in blue.
+    Plot the loss of the models. Generator in blue. AUC in Yellow
 '''
 def plot(train_history):
     dy = train_history['discriminator_loss']
@@ -101,7 +101,7 @@ def plot(train_history):
     Randomly draw subspaces for each sub_discriminator. Store them in names[]
 '''
 def draw_subspaces(dimension, k):
-    dims = random.sample(range(dimension), k)
+    dims = random.sample(range(1,dimension), k)
     for i in range(k):
         names["subspaces"+str(i)] = random.sample(range(dimension), dims[i])
     
@@ -130,30 +130,15 @@ if __name__ == '__main__':
         
         draw_subspaces(latent_size,k)
         
+        names["sub_discriminator_sum"] = 0
         # create sub_discriminators, sum is used to then take the average of all sub_discriminators' decisions
         for i in range(k):
             names["sub_discriminator" + str(i)] = create_dis(len(names["subspaces"+str(i)]))
             names["fake" + str(i)] = generator(latent) # generate the fake data of the generator
             #names["sub_discriminator" + str(i)].trainable = False
-            
-            '''
-                Idea: Only choose correct dimensions via numpy for the generators. Then, when combining, take each boiled down subspace,
-                fill it with zeros where the dimension wasnt used and then take the average.
-            '''
-            print(tf.shape(names["fake" + str(i)]))
-            print(names["subspaces"+str(i)])
-            print(tf.gather(names["fake" + str(i)],[names["subspaces"+str(i)]])) # Problem: choosing relevant subspaces doesnt work like that
-            names["fake" + str(i)] = names["sub_discriminator" + str(i)](tf.gather(names["fake" + str(i)],[names["subspaces"+str(i)]])) # D(G(z)) #this might shuffle
-            names["sub_discriminator_sum"] = np.zeros(latent_size)
-            for i in range(k):
-                for j in range(len(names["subspaces"+str(i)])):
-                    names["sub_discriminator_sum"][names["subspaces"+str(i)][j]] += names["fake"+str(i)][j]
-            
-            #if create == 0:
-            #    names["sub_discriminator_sum"] = names["fake" + str(i)]
-            #    create = 1
-            #else:
-            #    names["sub_discriminator_sum"] += names["fake" + str(i)]
+            print(i)
+            names["fake" + str(i)] = names["sub_discriminator" + str(i)](tf.gather(names["fake"+str(i)],names["subspaces"+str(i)],axis=1))
+            names["sub_discriminator_sum"] += names["fake" + str(i)]
             names["sub_discriminator" + str(i)].compile(optimizer=keras.optimizers.SGD(learning_rate=args.lr_dis), loss='binary_crossentropy')
             
         names["sub_discriminator_sum"] /= k
@@ -182,7 +167,7 @@ if __name__ == '__main__':
                 
                 discriminator_loss = 0
                 for i in range(k):
-                    names["sub_discriminator" + str(i) + "_loss"] = names["sub_discriminator" + str(i)].train_on_batch(X,Y)
+                    names["sub_discriminator" + str(i) + "_loss"] = names["sub_discriminator" + str(i)].train_on_batch(X[:,names["subspaces"+str(i)]],Y)
                     train_history['sub_discriminator{}_loss'.format(i)].append(names['sub_discriminator' + str(i) + '_loss'])
                     discriminator_loss += names["sub_discriminator" + str(i) + "_loss"]
                 discriminator_loss /= k
@@ -191,9 +176,9 @@ if __name__ == '__main__':
                 counter = 0
                 for i in range(k):
                     if counter == 0:
-                        p_value = names["sub_discriminator" + str(i)].predict(data_x)
+                        p_value = names["sub_discriminator" + str(i)].predict(data_x.to_numpy()[:,names["subspaces"+str(i)]])
                     else:
-                        p_value += names["sub_discriminator" + str(i)].predict(data_x)
+                        p_value += names["sub_discriminator" + str(i)].predict(data_x.to_numpy()[:,names["subspaces"+str(i)]])
                         
                 p_value /= k
                 
@@ -233,4 +218,4 @@ if __name__ == '__main__':
                 train_history['auc'].append((sum / (len(inlier_parray) * len(outlier_parray))))
             print('AUC:{}'.format(AUC))
 
-    plot(train_history, 'loss')
+    plot(train_history)
