@@ -15,6 +15,7 @@ from scipy.io import arff
 import pandas as pd
 import matplotlib.pyplot as plt
 from collections import defaultdict
+import random
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="FeGAN OD")
@@ -46,6 +47,10 @@ def set_seed(seed):
 
 #-----------------------------------------------------------------------------------------#
 
+
+'''
+    Create the generator. Uses two dense layers and relu activatoin
+'''
 def create_gen():
     generator = Sequential()
     generator.add(layers.Dense(latent_size, input_dim=latent_size, activation="relu", kernel_initializer=keras.initializers.Identity(gain=1.0)))
@@ -54,12 +59,14 @@ def create_gen():
     fake_data = generator(latent)
     return keras.Model(latent, fake_data)
 
-
-def create_dis():
+'''
+    Create the discriminator. USes two dense layers and relu activation
+'''
+def create_dis(sub_size):
     discriminator = Sequential()
-    discriminator.add(layers.Dense(np.ceil(np.sqrt(data_size)), input_dim=latent_size, activation='relu', kernel_initializer= keras.initializers.VarianceScaling(scale=1.0, mode='fan_in', distribution='normal', seed=None)))
+    discriminator.add(layers.Dense(np.ceil(np.sqrt(data_size)), input_dim=sub_size, activation='relu', kernel_initializer= keras.initializers.VarianceScaling(scale=1.0, mode='fan_in', distribution='normal', seed=None)))
     discriminator.add(layers.Dense(1, activation='sigmoid', kernel_initializer=keras.initializers.VarianceScaling(scale=1.0, mode='fan_in', distribution='normal', seed=None)))
-    data = keras.Input(shape=(latent_size,))
+    data = keras.Input(shape=(sub_size,))
     fake = discriminator(data)
     return keras.Model(data, fake)
 
@@ -72,7 +79,10 @@ def load_data():
     
     return data_x, data_y
 
-def plot(train_history, name):
+'''
+    Plot the loss of the models. Generator in blue.
+'''
+def plot(train_history):
     dy = train_history['discriminator_loss']
     gy = train_history['generator_loss']
     auc_y = train_history['auc']
@@ -86,6 +96,15 @@ def plot(train_history, name):
     for i in range(k):
         ax.plot(x, names['dy_' + str(i)], color='green', linewidth='0.5')
     plt.show()
+    
+'''
+    Randomly draw subspaces for each sub_discriminator. Store them in names[]
+'''
+def draw_subspaces(dimension, k):
+    dims = random.sample(range(dimension), k)
+    for i in range(k):
+        names["subspaces"+str(i)] = random.sample(range(dimension), dims[i])
+    
 
 if __name__ == '__main__':
     set_seed(777)
@@ -93,8 +112,8 @@ if __name__ == '__main__':
     
     args = parse_arguments()
     data_x, data_y = load_data()
-    data_size = data_x.shape[0]
-    latent_size = data_x.shape[1]
+    data_size = data_x.shape[0] # n := number of samples
+    latent_size = data_x.shape[1] # dimension of the data set
     
     if train:
         train_history = defaultdict(list)
@@ -107,21 +126,38 @@ if __name__ == '__main__':
         generator = create_gen()
         generator.compile(optimizer=keras.optimizers.SGD(learning_rate=args.lr_gen), loss='binary_crossentropy')
         latent = keras.Input(shape=(latent_size,))
-        create = 0
+        create = 0 # used to initialize sum of the sub_discriminators
+        
+        draw_subspaces(latent_size,k)
+        
+        # create sub_discriminators, sum is used to then take the average of all sub_discriminators' decisions
         for i in range(k):
-            names["sub_discriminator" + str(i)] = create_dis()
-            names["fake" + str(i)] = generator(latent)
+            names["sub_discriminator" + str(i)] = create_dis(len(names["subspaces"+str(i)]))
+            names["fake" + str(i)] = generator(latent) # generate the fake data of the generator
             #names["sub_discriminator" + str(i)].trainable = False
-            names["fake" + str(i)] = names["sub_discriminator" + str(i)](names["fake" + str(i)])
-            if create == 0:
-                names["sub_discriminator_sum"] = names["fake" + str(i)]
-                create = 1
-            else:
-                names["sub_discriminator_sum"] += names["fake" + str(i)]
+            
+            '''
+                Idea: Only choose correct dimensions via numpy for the generators. Then, when combining, take each boiled down subspace,
+                fill it with zeros where the dimension wasnt used and then take the average.
+            '''
+            print(tf.shape(names["fake" + str(i)]))
+            print(names["subspaces"+str(i)])
+            print(tf.gather(names["fake" + str(i)],[names["subspaces"+str(i)]])) # Problem: choosing relevant subspaces doesnt work like that
+            names["fake" + str(i)] = names["sub_discriminator" + str(i)](tf.gather(names["fake" + str(i)],[names["subspaces"+str(i)]])) # D(G(z)) #this might shuffle
+            names["sub_discriminator_sum"] = np.zeros(latent_size)
+            for i in range(k):
+                for j in range(len(names["subspaces"+str(i)])):
+                    names["sub_discriminator_sum"][names["subspaces"+str(i)][j]] += names["fake"+str(i)][j]
+            
+            #if create == 0:
+            #    names["sub_discriminator_sum"] = names["fake" + str(i)]
+            #    create = 1
+            #else:
+            #    names["sub_discriminator_sum"] += names["fake" + str(i)]
             names["sub_discriminator" + str(i)].compile(optimizer=keras.optimizers.SGD(learning_rate=args.lr_dis), loss='binary_crossentropy')
             
         names["sub_discriminator_sum"] /= k
-        names["combine_model"] = keras.Model(latent, names["sub_discriminator_sum"])
+        names["combine_model"] = keras.Model(latent, names["sub_discriminator_sum"]) # model with the average decision. Used to train the generator.
         names["combine_model"].compile(optimizer=keras.optimizers.SGD(learning_rate=args.lr_gen), loss='binary_crossentropy')
         
         
