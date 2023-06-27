@@ -16,15 +16,18 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from collections import defaultdict
 import random
+from datetime import date
+import csv
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="FeGAN OD")
-    parser.add_argument("--path", default="../Resources/Datasets/Arrhythmia_withoutdupl_norm_02_v01.arff",
-                        help="Data path")
-    parser.add_argument("--lr_gen", type=float, default=0.01, help="Learning rate generator")
-    parser.add_argument("--lr_dis", type=float, default=0.01, help="Learning rate discriminator")
-    parser.add_argument("--stop_epochs", type=int, default = 30, help="Generator stops training after stop_epochs")
-    parser.add_argument("--k", type=int, default=30 , help="Number of discriminators")
+    parser.add_argument("--gpu", type=int,default=0)
+    #parser.add_argument("--path", default="../Resources/Datasets/Arrhythmia_withoutdupl_norm_02_v01.arff",
+    #                    help="Data path")
+    #parser.add_argument("--lr_gen", type=float, default=0.01, help="Learning rate generator")
+    #parser.add_argument("--lr_dis", type=float, default=0.01, help="Learning rate discriminator")
+    #parser.add_argument("--stop_epochs", type=int, default = 30, help="Generator stops training after stop_epochs")
+    #parser.add_argument("--k", type=int, default=30 , help="Number of discriminators")
     
     return parser.parse_args()
 
@@ -51,7 +54,7 @@ def set_seed(seed):
 '''
     Create the generator. Uses two dense layers and relu activatoin
 '''
-def create_gen():
+def create_gen(latent_size):
     generator = Sequential()
     generator.add(layers.Dense(latent_size, input_dim=latent_size, activation="relu", kernel_initializer=keras.initializers.Identity(gain=1.0)))
     generator.add(layers.Dense(latent_size, activation='relu', kernel_initializer=keras.initializers.Identity(gain=1.0)))
@@ -62,7 +65,7 @@ def create_gen():
 '''
     Create the discriminator. USes two dense layers and relu activation
 '''
-def create_dis(sub_size):
+def create_dis(sub_size,data_size):
     discriminator = Sequential()
     discriminator.add(layers.Dense(np.ceil(np.sqrt(data_size)), input_dim=sub_size, activation='relu', kernel_initializer= keras.initializers.VarianceScaling(scale=1.0, mode='fan_in', distribution='normal', seed=None)))
     discriminator.add(layers.Dense(1, activation='sigmoid', kernel_initializer=keras.initializers.VarianceScaling(scale=1.0, mode='fan_in', distribution='normal', seed=None)))
@@ -70,8 +73,8 @@ def create_dis(sub_size):
     fake = discriminator(data)
     return keras.Model(data, fake)
 
-def load_data():
-    arff_data = arff.loadarff(args.path)
+def load_data(path):
+    arff_data = arff.loadarff(path)
     df = pd.DataFrame(arff_data[0])
     df["outlier"] = pd.factorize(df["outlier"], sort=True)[0] #maybe flip
     data_x = df.iloc[:,:-2]
@@ -82,7 +85,7 @@ def load_data():
 '''
     Plot the loss of the models. Generator in blue. AUC in Yellow
 '''
-def plot(train_history):
+def plot(train_history,names,k,result_path):
     dy = train_history['discriminator_loss']
     gy = train_history['generator_loss']
     auc_y = train_history['auc']
@@ -90,60 +93,58 @@ def plot(train_history):
         names['dy_' + str(i)] = train_history['sub_discriminator{}_loss'.format(i)]
     x = np.linspace(1, len(gy), len(gy))
     fig, ax = plt.subplots()
-    ax.plot(x, gy, color='blue')
-    ax.plot(x, dy,color='red')
-    ax.plot(x, auc_y, color='yellow', linewidth = '3')
+    ax.plot(x, gy, color='blue', label="Generator loss")
+    ax.plot(x, dy,color='red', label="Avg discriminator loss")
+    ax.plot(x, auc_y, color='yellow', linewidth = '3', label="AUC")
     for i in range(k):
         ax.plot(x, names['dy_' + str(i)], color='green', linewidth='0.5')
-    plt.show()
+    ax.legend(loc="upper left")
+    plt.savefig(result_path + str(k))
     
 '''
     Randomly draw subspaces for each sub_discriminator. Store them in names[]
 '''
-def draw_subspaces(dimension, k):
+def draw_subspaces(dimension, k,names):
     dims = random.sample(range(1,dimension), k)
     for i in range(k):
         names["subspaces"+str(i)] = random.sample(range(dimension), dims[i])
-    
+        
 
-if __name__ == '__main__':
-    set_seed(777)
+def start_training(seed,stop_epochs,k,path,lr_g,lr_d,result_path):
+    set_seed(seed)
     train = True
     
-    args = parse_arguments()
-    data_x, data_y = load_data()
+    data_x, data_y = load_data(path)
     data_size = data_x.shape[0] # n := number of samples
     latent_size = data_x.shape[1] # dimension of the data set
     
     if train:
         train_history = defaultdict(list)
         names = locals()
-        epochs = args.stop_epochs * 3
+        epochs = stop_epochs * 3
         stop = 0
-        k = args.k
 
         
-        generator = create_gen()
-        generator.compile(optimizer=keras.optimizers.SGD(learning_rate=args.lr_gen), loss='binary_crossentropy')
+        generator = create_gen(latent_size)
+        generator.compile(optimizer=keras.optimizers.SGD(learning_rate=lr_g), loss='binary_crossentropy')
         latent = keras.Input(shape=(latent_size,))
-        create = 0 # used to initialize sum of the sub_discriminators
         
-        draw_subspaces(latent_size,k)
+        draw_subspaces(latent_size,k,names)
         
         names["sub_discriminator_sum"] = 0
         # create sub_discriminators, sum is used to then take the average of all sub_discriminators' decisions
         for i in range(k):
-            names["sub_discriminator" + str(i)] = create_dis(len(names["subspaces"+str(i)]))
+            names["sub_discriminator" + str(i)] = create_dis(len(names["subspaces"+str(i)]),data_size)
             names["fake" + str(i)] = generator(latent) # generate the fake data of the generator
             #names["sub_discriminator" + str(i)].trainable = False
-            print(i)
+
             names["fake" + str(i)] = names["sub_discriminator" + str(i)](tf.gather(names["fake"+str(i)],names["subspaces"+str(i)],axis=1))
             names["sub_discriminator_sum"] += names["fake" + str(i)]
-            names["sub_discriminator" + str(i)].compile(optimizer=keras.optimizers.SGD(learning_rate=args.lr_dis), loss='binary_crossentropy')
+            names["sub_discriminator" + str(i)].compile(optimizer=keras.optimizers.SGD(learning_rate=lr_d), loss='binary_crossentropy')
             
         names["sub_discriminator_sum"] /= k
         names["combine_model"] = keras.Model(latent, names["sub_discriminator_sum"]) # model with the average decision. Used to train the generator.
-        names["combine_model"].compile(optimizer=keras.optimizers.SGD(learning_rate=args.lr_gen), loss='binary_crossentropy')
+        names["combine_model"].compile(optimizer=keras.optimizers.SGD(learning_rate=lr_g), loss='binary_crossentropy')
         
         
         for epoch in range(epochs):
@@ -191,7 +192,7 @@ if __name__ == '__main__':
                     generator_loss = names["combine_model"].evaluate(noise, trick)
                     train_history['generator_loss'].append(generator_loss)
 
-                if epoch +1 > args.stop_epochs:
+                if epoch + 1 > stop_epochs:
                         stop = 1
                 
             data_y = pd.DataFrame(data_y)
@@ -210,12 +211,61 @@ if __name__ == '__main__':
                         sum += 0.5
                     else:
                         sum += 0
-            print(result)
-            print(len(inlier_parray))
-            print(len(outlier_parray))
             AUC = '{:.4f}'.format(sum / (len(inlier_parray) * len(outlier_parray)))
             for i in range(num_batches):
                 train_history['auc'].append((sum / (len(inlier_parray) * len(outlier_parray))))
             print('AUC:{}'.format(AUC))
 
-    plot(train_history)
+    plot(train_history,names,k,result_path)
+    return AUC
+    
+def start(path,result_path,data_path):
+    seeds =[777, 45116, 4403, 92879, 34770]
+    lrs_g = [0.01,0.001,0.001]
+    lrs_d = [0.01,0.001]
+    ks =[10,25,50,75,100]
+    stop_epochs = [20,30,50]
+    
+    seed = 777
+    lr_g = 0.001
+    lr_d = 0.001
+    ks =[10,25,50,75,100]
+    stop_epochs = [20,30,50]
+    
+    with open(result_path + data_path, "a", newline = "") as csv_file:
+        writer = csv.writer(csv_file)
+        writer. writerow(["Seed", "LR_G", "LR_D", "k", "stop_epochs", "AUC"])
+    
+    for k in ks:
+        for stop_epoch in stop_epochs:
+            AUC = start_training(seed,stop_epoch,k,path,lr_g,lr_d,result_path)
+            output = [seed, lr_g, lr_d, k,stop_epoch,AUC]
+            with open(result_path + data_path, "a", newline = "") as csv_file:
+                writer = csv.writer(csv_file)
+                writer. writerow(output)
+    
+def buildPath(dataset):
+    result_path = "./Results/FeGAN_Results/Run_" + str(date.today()) + "_"+dataset
+    if not os.path.exists(result_path):
+        os.makedirs(result_path)
+    return result_path
+
+def main():
+    tf.config.threading.set_inter_op_parallelism_threads(1)
+    tf.config.threading.set_intra_op_parallelism_threads(1)
+    tf.config.experimental.enable_op_determinism()
+    os.environ['TF_DETERMINISTIC_OPS'] = '1'
+    os.environ['TF_CUDNN_DETERMINISTIC'] = '1'
+    
+    args = parse_arguments()
+    
+    gpu = "/device:GPU:" + str(args.gpu)
+    
+    with tf.device(gpu):
+        if args.gpu == 0:
+            start("../Resources/Datasets/Arrhythmia_withoutdupl_norm_02_v01.arff",buildPath("Arrythmia"),"/Arrythmia.csv")
+        if args.gpu == 1:
+            start("../Resources/Datasets/Waveform_withoutdupl_norm_v01.arff",buildPath("Waveform"),"/Waveform.csv")
+
+if __name__ == '__main__':
+    main()
