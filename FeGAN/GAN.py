@@ -100,14 +100,14 @@ def plot(train_history,names,k,result_path):
     #for i in range(k):
     #    ax.plot(x, names['dy_' + str(i)], color='green', linewidth='0.5')
     ax.legend(loc="upper left")
-    plt.savefig(result_path + str(k))
+    plt.savefig(result_path + "/" + str(k))
     
 '''
     Randomly draw subspaces for each sub_discriminator. Store them in names[]
 '''
-def draw_subspaces(dimension, k,names):
-    dims = random.choices(range(1,dimension), k)
-    for i in range(k):
+def draw_subspaces(dimension, ks,names):
+    dims = random.choices(range(1,dimension), k=ks)
+    for i in range(ks):
         names["subspaces"+str(i)] = random.sample(range(dimension), dims[i])
         
 
