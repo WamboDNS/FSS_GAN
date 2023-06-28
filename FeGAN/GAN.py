@@ -96,8 +96,9 @@ def plot(train_history,names,k,result_path):
     ax.plot(x, gy, color='blue', label="Generator loss")
     ax.plot(x, dy,color='red', label="Avg discriminator loss")
     ax.plot(x, auc_y, color='yellow', linewidth = '3', label="AUC")
-    for i in range(k):
-        ax.plot(x, names['dy_' + str(i)], color='green', linewidth='0.5')
+    # dont show loss for sub discriminators. Gets very messy.
+    #for i in range(k):
+    #    ax.plot(x, names['dy_' + str(i)], color='green', linewidth='0.5')
     ax.legend(loc="upper left")
     plt.savefig(result_path + str(k))
     
@@ -105,7 +106,7 @@ def plot(train_history,names,k,result_path):
     Randomly draw subspaces for each sub_discriminator. Store them in names[]
 '''
 def draw_subspaces(dimension, k,names):
-    dims = random.sample(range(1,dimension), k)
+    dims = random.choices(range(1,dimension), k)
     for i in range(k):
         names["subspaces"+str(i)] = random.sample(range(dimension), dims[i])
         
@@ -218,19 +219,20 @@ def start_training(seed,stop_epochs,k,path,lr_g,lr_d,result_path):
 
     plot(train_history,names,k,result_path)
     return AUC
+
+def get_dim(path):
+    return load_data(path)[0].shape[1]
     
 def start(path,result_path,data_path):
+    dimension = get_dim(path)
+    sqrt = np.floor(np.sqrt(dimension))
     seeds =[777, 45116, 4403, 92879, 34770]
     lrs_g = [0.01,0.001,0.001]
     lrs_d = [0.01,0.001]
-    ks =[10,25,50,75,100]
+    ks =[10,sqrt,2*sqrt,dimension,2**sqrt]
     stop_epochs = [20,30,50]
     
     seed = 777
-    lr_g = 0.001
-    lr_d = 0.001
-    ks =[10,25,50,75,100]
-    stop_epochs = [20,30,50]
     
     with open(result_path + data_path, "a", newline = "") as csv_file:
         writer = csv.writer(csv_file)
@@ -238,11 +240,13 @@ def start(path,result_path,data_path):
     
     for k in ks:
         for stop_epoch in stop_epochs:
-            AUC = start_training(seed,stop_epoch,k,path,lr_g,lr_d,result_path)
-            output = [seed, lr_g, lr_d, k,stop_epoch,AUC]
-            with open(result_path + data_path, "a", newline = "") as csv_file:
-                writer = csv.writer(csv_file)
-                writer. writerow(output)
+                for lr_g in lrs_g:
+                    for lr_d in lrs_d:
+                        AUC = start_training(seed,stop_epoch,k,path,lr_g,lr_d,result_path)
+                        output = [seed, lr_g, lr_d, k,stop_epoch,AUC]
+                        with open(result_path + data_path, "a", newline = "") as csv_file:
+                            writer = csv.writer(csv_file)
+                            writer. writerow(output)
     
 def buildPath(dataset):
     result_path = "./Results/FeGAN_Results/Run_" + str(date.today()) + "_"+dataset
