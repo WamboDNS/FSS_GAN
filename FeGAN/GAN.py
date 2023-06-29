@@ -267,9 +267,9 @@ def main():
     
     with tf.device(gpu):
         if args.gpu == 0:
-            start("../Resources/Datasets/Arrhythmia_withoutdupl_norm_02_v01.arff",buildPath("Arrythmia"),"/Arrythmia.csv")
+            start("../Resources/Datasets/InternetAds_withoutdupl_norm_02_v01.arff",buildPath("InternetAds"),"/InternetAds.csv")
         if args.gpu == 1:
-            start("../Resources/Datasets/Waveform_withoutdupl_norm_v01.arff",buildPath("Waveform"),"/Waveform.csv")
+            start("../Resources/Datasets/SpamBase_withoutdupl_norm_02_v01.arff",buildPath("SpamBase"),"/SpamBase.csv")
 
 if __name__ == '__main__':
     main()
