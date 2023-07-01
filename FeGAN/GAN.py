@@ -264,7 +264,7 @@ def main():
     
     if args.gpu == 0:
         use = 0
-    elif args.pgu == 1:
+    elif args.gpu == 1:
         use = 1
     elif args.gpu == 2:
         use = 0
