@@ -73,7 +73,8 @@ def create_dis(sub_size,data_size):
     fake = discriminator(data)
     return keras.Model(data, fake)
 
-def load_data(path):
+def load_data(path, inlier):
+    '''
     arff_data = arff.loadarff(path)
     df = pd.DataFrame(arff_data[0])
     df["outlier"] = pd.factorize(df["outlier"], sort=True)[0] #maybe flip
@@ -81,11 +82,39 @@ def load_data(path):
     data_y = df.iloc[:,-1]
     
     return data_x, data_y
+    '''
+    if path == "C":
+        (train_prior, prior_labels), (test_prior, test_labels) = tf.keras.datasets.cifar10.load_data() 
+    else:
+        (train_prior, prior_labels), (test_prior, test_labels) = tf.keras.datasets.fashion_mnist.load_data()
+
+    idx = np.where(prior_labels == inlier)
+    train = train_prior[idx[0]].copy() / 255
+    test = test_prior.copy() / 255
+    
+    nx,ny,nz = (1,1,1)
+
+    if path == "C":
+        nsamples, nx, ny, nz = np.shape(train)
+        train = train.reshape(nsamples, nx*ny*nz)
+        nsamples, nx, ny, nz = np.shape(test)
+        test = test.reshape(nsamples, nx*ny*nz)
+    else: 
+        nsamples, nx, ny = np.shape(train)
+        train = train.reshape(nsamples, nx*ny)
+        nsamples, nx, ny = np.shape(test)
+        test = test.reshape(nsamples, nx*ny)  
+        
+    ground_truth = np.ones(len(test_labels))
+    inlier_idx = np.where(test_labels == inlier)
+    ground_truth[inlier_idx[0]] = 0
+    
+    return train,test,ground_truth,nz*ny*nz
 
 '''
     Plot the loss of the models. Generator in blue. AUC in Yellow
 '''
-def plot(train_history,names,k,result_path):
+def plot(train_history,names,k,result_path,inlier):
     dy = train_history['discriminator_loss']
     gy = train_history['generator_loss']
     auc_y = train_history['auc']
@@ -100,7 +129,7 @@ def plot(train_history,names,k,result_path):
     #for i in range(k):
     #    ax.plot(x, names['dy_' + str(i)], color='green', linewidth='0.5')
     ax.legend(loc="upper left")
-    plt.savefig(result_path + "/" + str(k))
+    plt.savefig(result_path + "/" + str(k)+"_"+str(inlier))
     
 '''
     Randomly draw subspaces for each sub_discriminator. Store them in names[]
@@ -111,13 +140,13 @@ def draw_subspaces(dimension, ks,names):
         names["subspaces"+str(i)] = random.sample(range(dimension), dims[i])
         
 
-def start_training(seed,stop_epochs,k,path,lr_g,lr_d,result_path):
+def start_training(seed,stop_epochs,k,path,lr_g,lr_d,result_path,inlier):
     set_seed(seed)
     train = True
     
-    data_x, data_y = load_data(path)
-    data_size = data_x.shape[0] # n := number of samples
-    latent_size = data_x.shape[1] # dimension of the data set
+    train_set,test_set,ground_truth,data_size,latent_size = load_data(path,inlier)
+    #data_size = data_x.shape[0] # n := number of samples
+    #latent_size = data_x.shape[1] # dimension of the data set
     
     if train:
         train_history = defaultdict(list)
@@ -160,7 +189,7 @@ def start_training(seed,stop_epochs,k,path,lr_g,lr_d,result_path):
                 noise_size = batch_size
                 noise = np.random.uniform(0, 1, (int(noise_size), latent_size))
                 
-                data_batch = data_x[idx * batch_size: (idx + 1) * batch_size]
+                data_batch = train_set[idx * batch_size: (idx + 1) * batch_size]
                 
                 names["generated_data"] = generator.predict(noise, verbose = 1)
                 
@@ -175,9 +204,30 @@ def start_training(seed,stop_epochs,k,path,lr_g,lr_d,result_path):
                 discriminator_loss /= k
                 train_history["discriminator_loss"].append(discriminator_loss)
                     
-                p_value = names["sub_discriminator" + str(0)].predict(data_x.to_numpy()[:,names["subspaces"+str(0)]])
-                for i in range(start=1,stop=k):
-                    p_value += names["sub_discriminator" + str(i)].predict(data_x.to_numpy()[:,names["subspaces"+str(i)]])
+                counter = 0
+                for i in range(k):
+                    if counter == 0:
+                        p_value = names["sub_discriminator" + str(i)].predict(train_set.to_numpy()[:,names["subspaces"+str(i)]])
+                    else:
+                        p_value += names["sub_discriminator" + str(i)].predict(train_set.to_numpy()[:,names["subspaces"+str(i)]])
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        # Bug alert.... missing counter++.................
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
                         
                 p_value /= k
                 
@@ -193,7 +243,14 @@ def start_training(seed,stop_epochs,k,path,lr_g,lr_d,result_path):
                 if epoch + 1 > stop_epochs:
                         stop = 1
                 
-            data_y = pd.DataFrame(data_y)
+            counter=0
+            for i in range(k):
+                    if counter == 0:
+                        p_value = names["sub_discriminator" + str(i)].predict(train_set.to_numpy()[:,names["subspaces"+str(i)]])
+                    else:
+                        p_value += names["sub_discriminator" + str(i)].predict(train_set.to_numpy()[:,names["subspaces"+str(i)]])    
+                
+            data_y = pd.DataFrame(ground_truth)
             result = np.concatenate((p_value,data_y), axis=1)
             result = pd.DataFrame(result, columns=["p","y"])
             result = result.sort_values("p", ascending=True)
@@ -226,8 +283,8 @@ def start(path,result_path,data_path):
     seeds =[777, 45116, 4403, 92879, 34770]
     lrs_g = [0.001]
     lrs_d = [0.01,0.001]
-    ks =[2*sqrt,dimension,2**sqrt] #Decision between 2*sqrt and dim
-    stop_epochs = [40]
+    k_new =[2*sqrt,dimension,2**sqrt]
+    stop_epochs_new = [40]
     
     seed = 777
     
@@ -235,8 +292,8 @@ def start(path,result_path,data_path):
         writer = csv.writer(csv_file)
         writer. writerow(["Seed", "LR_G", "LR_D", "k", "stop_epochs", "AUC"])
     
-    for k in ks:
-        for stop_epoch in stop_epochs:
+    for k in k_new:
+        for stop_epoch in stop_epochs_new:
                 for lr_g in lrs_g:
                     for lr_d in lrs_d:
                         AUC = start_training(seed,stop_epoch,k,path,lr_g,lr_d,result_path)
@@ -260,28 +317,13 @@ def main():
     
     args = parse_arguments()
     
-    use = -1
-    
-    if args.gpu == 0:
-        use = 0
-    elif args.pgu == 1:
-        use = 1
-    elif args.gpu == 2:
-        use = 0
-    elif args.gpu == 3:
-        use = 1
-    
-    gpu = "/device:GPU:" + str(use)
+    gpu = "/device:GPU:" + str(args.gpu)
     
     with tf.device(gpu):
         if args.gpu == 0:
             start("../Resources/Datasets/InternetAds_withoutdupl_norm_02_v01.arff",buildPath("InternetAds"),"/InternetAds.csv")
         if args.gpu == 1:
             start("../Resources/Datasets/SpamBase_withoutdupl_norm_02_v01.arff",buildPath("SpamBase"),"/SpamBase.csv")
-        if args.gpu == 2:
-            start("../Resources/Datasets/Arrhythmia_withoutdupl_norm_02_v01.arff",buildPath("Arrythmia"),"/Arrythmia.csv")
-        if args.gpu == 3:
-            start("../Resources/Datasets/Waveform_withoutdupl_norm_v01.arff",buildPath("Waveform"),"/Waveform.csv")
 
 if __name__ == '__main__':
     main()
