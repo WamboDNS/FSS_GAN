@@ -22,6 +22,7 @@ import csv
 def parse_arguments():
     parser = argparse.ArgumentParser(description="FeGAN OD")
     parser.add_argument("--gpu", type=int,default=0)
+    parser.add_argument("--data", default="I")
     #parser.add_argument("--path", default="../Resources/Datasets/Arrhythmia_withoutdupl_norm_02_v01.arff",
     #                    help="Data path")
     #parser.add_argument("--lr_gen", type=float, default=0.01, help="Learning rate generator")
@@ -58,7 +59,8 @@ def create_gen(latent_size):
     generator = Sequential()
     generator.add(layers.Dense(latent_size, input_dim=latent_size, activation="relu", kernel_initializer=keras.initializers.Identity(gain=1.0)))
     generator.add(layers.Dense(latent_size, activation='relu', kernel_initializer=keras.initializers.Identity(gain=1.0)))
-    latent = keras.Input(shape=(latent_size,))
+    input_shape = (latent_size,)
+    latent = keras.Input(input_shape)
     fake_data = generator(latent)
     return keras.Model(latent, fake_data)
 
@@ -69,7 +71,8 @@ def create_dis(sub_size,data_size):
     discriminator = Sequential()
     discriminator.add(layers.Dense(np.ceil(np.sqrt(data_size)), input_dim=sub_size, activation='relu', kernel_initializer= keras.initializers.VarianceScaling(scale=1.0, mode='fan_in', distribution='normal', seed=None)))
     discriminator.add(layers.Dense(1, activation='sigmoid', kernel_initializer=keras.initializers.VarianceScaling(scale=1.0, mode='fan_in', distribution='normal', seed=None)))
-    data = keras.Input(shape=(sub_size,))
+    input_shape=(sub_size,)
+    data = keras.Input(input_shape)
     fake = discriminator(data)
     return keras.Model(data, fake)
 
@@ -128,7 +131,8 @@ def start_training(seed,stop_epochs,k,path,lr_g,lr_d,result_path):
         
         generator = create_gen(latent_size)
         generator.compile(optimizer=keras.optimizers.SGD(learning_rate=lr_g), loss='binary_crossentropy')
-        latent = keras.Input(shape=(latent_size,))
+        latent_shape = (latent_size,)
+        latent = keras.Input(latent_shape)
         
         draw_subspaces(latent_size,k,names)
         
@@ -260,27 +264,17 @@ def main():
     
     args = parse_arguments()
     
-    use = -1
     
-    if args.gpu == 0:
-        use = 0
-    elif args.gpu == 1:
-        use = 1
-    elif args.gpu == 2:
-        use = 0
-    elif args.gpu == 3:
-        use = 1
-    
-    gpu = "/device:GPU:" + str(use)
+    gpu = "/device:GPU:" + str(args.gpu)
     
     with tf.device(gpu):
-        if args.gpu == 0:
+        if args.data == "I":
             start("../Resources/Datasets/InternetAds_withoutdupl_norm_02_v01.arff",buildPath("InternetAds"),"/InternetAds.csv")
-        if args.gpu == 1:
+        if args.data == "S":
             start("../Resources/Datasets/SpamBase_withoutdupl_norm_02_v01.arff",buildPath("SpamBase"),"/SpamBase.csv")
-        if args.gpu == 2:
+        if args.data == "A":
             start("../Resources/Datasets/Arrhythmia_withoutdupl_norm_02_v01.arff",buildPath("Arrythmia"),"/Arrythmia.csv")
-        if args.gpu == 3:
+        if args.data == "W":
             start("../Resources/Datasets/Waveform_withoutdupl_norm_v01.arff",buildPath("Waveform"),"/Waveform.csv")
 
 if __name__ == '__main__':
