@@ -176,7 +176,7 @@ def start_training(seed,stop_epochs,k,path,lr_g,lr_d,result_path):
                 train_history["discriminator_loss"].append(discriminator_loss)
                     
                 p_value = names["sub_discriminator" + str(0)].predict(data_x.to_numpy()[:,names["subspaces"+str(0)]])
-                for i in range(start=1,stop=k):
+                for i in range(1,k):
                     p_value += names["sub_discriminator" + str(i)].predict(data_x.to_numpy()[:,names["subspaces"+str(i)]])
                         
                 p_value /= k
