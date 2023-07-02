@@ -87,6 +87,7 @@ def load_data():
     train = train_prior[idx[0]].copy() / 255
     test = test_prior.copy() / 255
 
+    nx,ny,nz =(1,1,1)
     if args.data == "C":
         nsamples, nx, ny, nz = np.shape(train)
         train = train.reshape(nsamples, nx*ny*nz)
