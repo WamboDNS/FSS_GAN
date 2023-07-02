@@ -22,6 +22,8 @@ import csv
 def parse_arguments():
     parser = argparse.ArgumentParser(description="FeGAN OD")
     parser.add_argument("--gpu", type=int,default=0)
+    parser.add_argument("--inlier", type=int, default=0)
+    parser.add_argument("--data",default="C")
     #parser.add_argument("--path", default="../Resources/Datasets/Arrhythmia_withoutdupl_norm_02_v01.arff",
     #                    help="Data path")
     #parser.add_argument("--lr_gen", type=float, default=0.01, help="Learning rate generator")
@@ -109,7 +111,7 @@ def load_data(path, inlier):
     inlier_idx = np.where(test_labels == inlier)
     ground_truth[inlier_idx[0]] = 0
     
-    return train,test,ground_truth,nz*ny*nz
+    return train,test,ground_truth,nsamples,nx*ny*nz
 
 '''
     Plot the loss of the models. Generator in blue. AUC in Yellow
@@ -204,30 +206,9 @@ def start_training(seed,stop_epochs,k,path,lr_g,lr_d,result_path,inlier):
                 discriminator_loss /= k
                 train_history["discriminator_loss"].append(discriminator_loss)
                     
-                counter = 0
-                for i in range(k):
-                    if counter == 0:
-                        p_value = names["sub_discriminator" + str(i)].predict(train_set.to_numpy()[:,names["subspaces"+str(i)]])
-                    else:
-                        p_value += names["sub_discriminator" + str(i)].predict(train_set.to_numpy()[:,names["subspaces"+str(i)]])
-                        
-                        
-                        
-                        
-                        
-                        
-                        
-                        # Bug alert.... missing counter++.................
-                        
-                        
-                        
-                        
-                        
-                        
-                        
-                        
-                        
-                        
+                p_value = names["sub_discriminator" + str(0)].predict(train_set[:,names["subspaces"+str(0)]])
+                for i in range(1,k):
+                    p_value += names["sub_discriminator" + str(i)].predict(train_set[:,names["subspaces"+str(i)]])
                         
                 p_value /= k
                 
@@ -243,12 +224,9 @@ def start_training(seed,stop_epochs,k,path,lr_g,lr_d,result_path,inlier):
                 if epoch + 1 > stop_epochs:
                         stop = 1
                 
-            counter=0
-            for i in range(k):
-                    if counter == 0:
-                        p_value = names["sub_discriminator" + str(i)].predict(train_set.to_numpy()[:,names["subspaces"+str(i)]])
-                    else:
-                        p_value += names["sub_discriminator" + str(i)].predict(train_set.to_numpy()[:,names["subspaces"+str(i)]])    
+            p_value = names["sub_discriminator" + str(0)].predict(test_set[:,names["subspaces"+str(0)]])
+            for i in range(1,k):
+                p_value += names["sub_discriminator" + str(i)].predict(test_set[:,names["subspaces"+str(i)]])
                 
             data_y = pd.DataFrame(ground_truth)
             result = np.concatenate((p_value,data_y), axis=1)
@@ -271,19 +249,20 @@ def start_training(seed,stop_epochs,k,path,lr_g,lr_d,result_path,inlier):
                 train_history['auc'].append((sum / (len(inlier_parray) * len(outlier_parray))))
             print('AUC:{}'.format(AUC))
 
-    plot(train_history,names,k,result_path)
+    plot(train_history,names,k,result_path,inlier)
     return AUC
 
-def get_dim(path):
-    return load_data(path)[0].shape[1]
+def get_dim(path,inlier):
+    train_set,test_set,ground_truth,data_size,latent_size = load_data(path,inlier)
+    return latent_size
     
-def start(path,result_path,data_path):
-    dimension = get_dim(path)
+def start(path,result_path,data_path,inlier):
+    dimension = get_dim(path,inlier)
     sqrt = int(np.sqrt(dimension))
     seeds =[777, 45116, 4403, 92879, 34770]
     lrs_g = [0.001]
     lrs_d = [0.01,0.001]
-    k_new =[2*sqrt,dimension,2**sqrt]
+    k_new =[sqrt,2*sqrt,dimension]
     stop_epochs_new = [40]
     
     seed = 777
@@ -296,9 +275,9 @@ def start(path,result_path,data_path):
         for stop_epoch in stop_epochs_new:
                 for lr_g in lrs_g:
                     for lr_d in lrs_d:
-                        AUC = start_training(seed,stop_epoch,k,path,lr_g,lr_d,result_path)
+                        AUC = start_training(seed,stop_epoch,k,path,lr_g,lr_d,result_path,inlier)
                         output = [seed, lr_g, lr_d, k,stop_epoch,AUC]
-                        with open(result_path + data_path, "a", newline = "") as csv_file:
+                        with open(result_path + "/" + str(inlier) + data_path + "a", newline = "") as csv_file:
                             writer = csv.writer(csv_file)
                             writer. writerow(output)
     
@@ -320,10 +299,10 @@ def main():
     gpu = "/device:GPU:" + str(args.gpu)
     
     with tf.device(gpu):
-        if args.gpu == 0:
-            start("../Resources/Datasets/InternetAds_withoutdupl_norm_02_v01.arff",buildPath("InternetAds"),"/InternetAds.csv")
-        if args.gpu == 1:
-            start("../Resources/Datasets/SpamBase_withoutdupl_norm_02_v01.arff",buildPath("SpamBase"),"/SpamBase.csv")
+        if args.data == "C":
+            start("C",buildPath("InternetAds"),"/InternetAds.csv",args.inlier)
+        if args.data == "F":
+            start("F",buildPath("FMNIST"),"/SpamBase.csv",args.inlier)
 
 if __name__ == '__main__':
     main()

@@ -136,7 +136,7 @@ def start_training(seed,stop_epochs,k,path,lr_g,lr_d,result_path):
         
         draw_subspaces(latent_size,k,names)
         
-        sub_discriminator_sum = 0
+        names["sub_discriminator_sum"] = 0
         # create sub_discriminators, sum is used to then take the average of all sub_discriminators' decisions
         for i in range(k):
             names["sub_discriminator" + str(i)] = create_dis(len(names["subspaces"+str(i)]),data_size)
@@ -144,11 +144,11 @@ def start_training(seed,stop_epochs,k,path,lr_g,lr_d,result_path):
             #names["sub_discriminator" + str(i)].trainable = False
 
             names["fake" + str(i)] = names["sub_discriminator" + str(i)](tf.gather(names["fake"+str(i)],names["subspaces"+str(i)],axis=1))
-            sub_discriminator_sum += names["fake" + str(i)]
+            names["sub_discriminator_sum"] += names["fake" + str(i)]
             names["sub_discriminator" + str(i)].compile(optimizer=keras.optimizers.SGD(learning_rate=lr_d), loss='binary_crossentropy')
             
-        sub_discriminator_sum /= k
-        names["combine_model"] = keras.Model(latent, sub_discriminator_sum) # model with the average decision. Used to train the generator.
+        names["sub_discriminator_sum"] /= k
+        names["combine_model"] = keras.Model(latent, names["sub_discriminator_sum"]) # model with the average decision. Used to train the generator.
         names["combine_model"].compile(optimizer=keras.optimizers.SGD(learning_rate=lr_g), loss='binary_crossentropy')
         
         
@@ -230,7 +230,7 @@ def start(path,result_path,data_path):
     seeds =[777, 45116, 4403, 92879, 34770]
     lrs_g = [0.001]
     lrs_d = [0.01,0.001]
-    ks =[2*sqrt,dimension,2**sqrt] #Decision between 2*sqrt and dim
+    ks =[2*sqrt,dimension,2**sqrt] #Decision between 2*sqrt and dim, 2^sqrt is way too much
     stop_epochs = [40]
     
     seed = 777
