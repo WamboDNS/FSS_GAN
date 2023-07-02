@@ -22,8 +22,8 @@ import csv
 def parse_arguments():
     parser = argparse.ArgumentParser(description="FeGAN OD")
     parser.add_argument("--gpu", type=int,default=0)
+    parser.add_argument("--data", default="C")
     parser.add_argument("--inlier", type=int, default=0)
-    parser.add_argument("--data",default="C")
     #parser.add_argument("--path", default="../Resources/Datasets/Arrhythmia_withoutdupl_norm_02_v01.arff",
     #                    help="Data path")
     #parser.add_argument("--lr_gen", type=float, default=0.01, help="Learning rate generator")
@@ -60,7 +60,8 @@ def create_gen(latent_size):
     generator = Sequential()
     generator.add(layers.Dense(latent_size, input_dim=latent_size, activation="relu", kernel_initializer=keras.initializers.Identity(gain=1.0)))
     generator.add(layers.Dense(latent_size, activation='relu', kernel_initializer=keras.initializers.Identity(gain=1.0)))
-    latent = keras.Input(shape=(latent_size,))
+    input_shape = (latent_size,)
+    latent = keras.Input(input_shape)
     fake_data = generator(latent)
     return keras.Model(latent, fake_data)
 
@@ -71,21 +72,13 @@ def create_dis(sub_size,data_size):
     discriminator = Sequential()
     discriminator.add(layers.Dense(np.ceil(np.sqrt(data_size)), input_dim=sub_size, activation='relu', kernel_initializer= keras.initializers.VarianceScaling(scale=1.0, mode='fan_in', distribution='normal', seed=None)))
     discriminator.add(layers.Dense(1, activation='sigmoid', kernel_initializer=keras.initializers.VarianceScaling(scale=1.0, mode='fan_in', distribution='normal', seed=None)))
-    data = keras.Input(shape=(sub_size,))
+    input_shape=(sub_size,)
+    data = keras.Input(input_shape)
     fake = discriminator(data)
     return keras.Model(data, fake)
 
-def load_data(path, inlier):
-    '''
-    arff_data = arff.loadarff(path)
-    df = pd.DataFrame(arff_data[0])
-    df["outlier"] = pd.factorize(df["outlier"], sort=True)[0] #maybe flip
-    data_x = df.iloc[:,:-2]
-    data_y = df.iloc[:,-1]
-    
-    return data_x, data_y
-    '''
-    if path == "C":
+def load_data():
+    if args.data == "C":
         (train_prior, prior_labels), (test_prior, test_labels) = tf.keras.datasets.cifar10.load_data() 
     else:
         (train_prior, prior_labels), (test_prior, test_labels) = tf.keras.datasets.fashion_mnist.load_data()
@@ -93,10 +86,8 @@ def load_data(path, inlier):
     idx = np.where(prior_labels == inlier)
     train = train_prior[idx[0]].copy() / 255
     test = test_prior.copy() / 255
-    
-    nx,ny,nz = (1,1,1)
 
-    if path == "C":
+    if args.data == "C":
         nsamples, nx, ny, nz = np.shape(train)
         train = train.reshape(nsamples, nx*ny*nz)
         nsamples, nx, ny, nz = np.shape(test)
@@ -111,12 +102,12 @@ def load_data(path, inlier):
     inlier_idx = np.where(test_labels == inlier)
     ground_truth[inlier_idx[0]] = 0
     
-    return train,test,ground_truth,nsamples,nx*ny*nz
+    return train, test, ground_truth, nsamples, nx*ny*nz
 
 '''
     Plot the loss of the models. Generator in blue. AUC in Yellow
 '''
-def plot(train_history,names,k,result_path,inlier):
+def plot(train_history,names,k,result_path):
     dy = train_history['discriminator_loss']
     gy = train_history['generator_loss']
     auc_y = train_history['auc']
@@ -131,7 +122,7 @@ def plot(train_history,names,k,result_path,inlier):
     #for i in range(k):
     #    ax.plot(x, names['dy_' + str(i)], color='green', linewidth='0.5')
     ax.legend(loc="upper left")
-    plt.savefig(result_path + "/" + str(k)+"_"+str(inlier))
+    plt.savefig(result_path + "/" + str(k))
     
 '''
     Randomly draw subspaces for each sub_discriminator. Store them in names[]
@@ -142,13 +133,11 @@ def draw_subspaces(dimension, ks,names):
         names["subspaces"+str(i)] = random.sample(range(dimension), dims[i])
         
 
-def start_training(seed,stop_epochs,k,path,lr_g,lr_d,result_path,inlier):
+def start_training(seed,stop_epochs,k,path,lr_g,lr_d,result_path):
     set_seed(seed)
     train = True
     
-    train_set,test_set,ground_truth,data_size,latent_size = load_data(path,inlier)
-    #data_size = data_x.shape[0] # n := number of samples
-    #latent_size = data_x.shape[1] # dimension of the data set
+    train_set,test_set,grond_truth,data_size,latent_size= load_data()
     
     if train:
         train_history = defaultdict(list)
@@ -156,10 +145,10 @@ def start_training(seed,stop_epochs,k,path,lr_g,lr_d,result_path,inlier):
         epochs = stop_epochs * 3
         stop = 0
 
-        
         generator = create_gen(latent_size)
         generator.compile(optimizer=keras.optimizers.SGD(learning_rate=lr_g), loss='binary_crossentropy')
-        latent = keras.Input(shape=(latent_size,))
+        latent_shape = (latent_size,)
+        latent = keras.Input(latent_shape)
         
         draw_subspaces(latent_size,k,names)
         
@@ -223,12 +212,12 @@ def start_training(seed,stop_epochs,k,path,lr_g,lr_d,result_path,inlier):
 
                 if epoch + 1 > stop_epochs:
                         stop = 1
-                
+                        
             p_value = names["sub_discriminator" + str(0)].predict(test_set[:,names["subspaces"+str(0)]])
             for i in range(1,k):
                 p_value += names["sub_discriminator" + str(i)].predict(test_set[:,names["subspaces"+str(i)]])
                 
-            data_y = pd.DataFrame(ground_truth)
+            data_y = pd.DataFrame(test_set)
             result = np.concatenate((p_value,data_y), axis=1)
             result = pd.DataFrame(result, columns=["p","y"])
             result = result.sort_values("p", ascending=True)
@@ -249,35 +238,35 @@ def start_training(seed,stop_epochs,k,path,lr_g,lr_d,result_path,inlier):
                 train_history['auc'].append((sum / (len(inlier_parray) * len(outlier_parray))))
             print('AUC:{}'.format(AUC))
 
-    plot(train_history,names,k,result_path,inlier)
+    plot(train_history,names,k,result_path)
     return AUC
 
-def get_dim(path,inlier):
-    train_set,test_set,ground_truth,data_size,latent_size = load_data(path,inlier)
+def get_dim(path):
+    _,_,_,_,latent_size = load_data()
     return latent_size
     
-def start(path,result_path,data_path,inlier):
-    dimension = get_dim(path,inlier)
+def start(path,result_path,csv_path):
+    dimension = get_dim(path)
     sqrt = int(np.sqrt(dimension))
     seeds =[777, 45116, 4403, 92879, 34770]
     lrs_g = [0.001]
     lrs_d = [0.01,0.001]
-    k_new =[sqrt,2*sqrt,dimension]
-    stop_epochs_new = [40]
+    ks =[2*sqrt,dimension,] #Decision between 2*sqrt and dim, 2^sqrt is way too much
+    stop_epochs = [40]
     
     seed = 777
     
-    with open(result_path + data_path, "a", newline = "") as csv_file:
+    with open(result_path + csv_path, "a", newline = "") as csv_file:
         writer = csv.writer(csv_file)
         writer. writerow(["Seed", "LR_G", "LR_D", "k", "stop_epochs", "AUC"])
     
-    for k in k_new:
-        for stop_epoch in stop_epochs_new:
+    for k in ks:
+        for stop_epoch in stop_epochs:
                 for lr_g in lrs_g:
                     for lr_d in lrs_d:
-                        AUC = start_training(seed,stop_epoch,k,path,lr_g,lr_d,result_path,inlier)
+                        AUC = start_training(seed,stop_epoch,k,path,lr_g,lr_d,result_path)
                         output = [seed, lr_g, lr_d, k,stop_epoch,AUC]
-                        with open(result_path + "/" + str(inlier) + data_path + "a", newline = "") as csv_file:
+                        with open(result_path + csv_path, "a", newline = "") as csv_file:
                             writer = csv.writer(csv_file)
                             writer. writerow(output)
     
@@ -286,8 +275,8 @@ def buildPath(dataset):
     if not os.path.exists(result_path):
         os.makedirs(result_path)
     return result_path
-
-def main():
+    
+if __name__ == '__main__':
     tf.config.threading.set_inter_op_parallelism_threads(1)
     tf.config.threading.set_intra_op_parallelism_threads(1)
     tf.config.experimental.enable_op_determinism()
@@ -295,14 +284,13 @@ def main():
     os.environ['TF_CUDNN_DETERMINISTIC'] = '1'
     
     args = parse_arguments()
+    inlier = args.inlier
+    
     
     gpu = "/device:GPU:" + str(args.gpu)
     
     with tf.device(gpu):
         if args.data == "C":
-            start("C",buildPath("InternetAds"),"/InternetAds.csv",args.inlier)
+            start("C",buildPath("CIFAR" + str(inlier)),"/CIFAR"+str(inlier)+".csv")
         if args.data == "F":
-            start("F",buildPath("FMNIST"),"/SpamBase.csv",args.inlier)
-
-if __name__ == '__main__':
-    main()
+            start("F",buildPath("FMNIST" + str(inlier)),"/FMNIST"+str(inlier)+".csv")

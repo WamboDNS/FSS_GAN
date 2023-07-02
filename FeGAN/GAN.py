@@ -128,7 +128,6 @@ def start_training(seed,stop_epochs,k,path,lr_g,lr_d,result_path):
         epochs = stop_epochs * 3
         stop = 0
 
-        
         generator = create_gen(latent_size)
         generator.compile(optimizer=keras.optimizers.SGD(learning_rate=lr_g), loss='binary_crossentropy')
         latent_shape = (latent_size,)
@@ -224,7 +223,7 @@ def start_training(seed,stop_epochs,k,path,lr_g,lr_d,result_path):
 def get_dim(path):
     return load_data(path)[0].shape[1]
     
-def start(path,result_path,data_path):
+def start(path,result_path,csv_path):
     dimension = get_dim(path)
     sqrt = int(np.sqrt(dimension))
     seeds =[777, 45116, 4403, 92879, 34770]
@@ -235,7 +234,7 @@ def start(path,result_path,data_path):
     
     seed = 777
     
-    with open(result_path + data_path, "a", newline = "") as csv_file:
+    with open(result_path + csv_path, "a", newline = "") as csv_file:
         writer = csv.writer(csv_file)
         writer. writerow(["Seed", "LR_G", "LR_D", "k", "stop_epochs", "AUC"])
     
@@ -245,7 +244,7 @@ def start(path,result_path,data_path):
                     for lr_d in lrs_d:
                         AUC = start_training(seed,stop_epoch,k,path,lr_g,lr_d,result_path)
                         output = [seed, lr_g, lr_d, k,stop_epoch,AUC]
-                        with open(result_path + data_path, "a", newline = "") as csv_file:
+                        with open(result_path + csv_path, "a", newline = "") as csv_file:
                             writer = csv.writer(csv_file)
                             writer. writerow(output)
     
@@ -254,8 +253,8 @@ def buildPath(dataset):
     if not os.path.exists(result_path):
         os.makedirs(result_path)
     return result_path
-
-def main():
+    
+if __name__ == '__main__':
     tf.config.threading.set_inter_op_parallelism_threads(1)
     tf.config.threading.set_intra_op_parallelism_threads(1)
     tf.config.experimental.enable_op_determinism()
@@ -276,6 +275,3 @@ def main():
             start("../Resources/Datasets/Arrhythmia_withoutdupl_norm_02_v01.arff",buildPath("Arrythmia"),"/Arrythmia.csv")
         if args.data == "W":
             start("../Resources/Datasets/Waveform_withoutdupl_norm_v01.arff",buildPath("Waveform"),"/Waveform.csv")
-
-if __name__ == '__main__':
-    main()
