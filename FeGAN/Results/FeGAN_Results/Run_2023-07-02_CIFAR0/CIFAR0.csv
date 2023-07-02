@@ -1,0 +1,6 @@
+Seed,LR_G,LR_D,k,stop_epochs,AUC
+Seed,LR_G,LR_D,k,stop_epochs,AUC
+Seed,LR_G,LR_D,k,stop_epochs,AUC
+777,0.01,0.01,55,40,0.3565
+777,0.01,0.001,55,40,0.3565
+777,0.001,0.01,55,40,0.3565
