@@ -113,11 +113,13 @@ def plot(train_history,names,k,result_path):
     auc_y = train_history['auc']
     for i in range(k):
         names['dy_' + str(i)] = train_history['sub_discriminator{}_loss'.format(i)]
-    x = np.linspace(1, len(gy), len(gy))
+    xg = np.linspace(1, len(gy), len(gy))
+    xd = np.linspace(1, len(dy), len(dy))
+    xa = np.linspace(1, len(auc_y), len(auc_y))
     fig, ax = plt.subplots()
-    ax.plot(x, gy, color='blue', label="Generator loss")
-    ax.plot(x, dy,color='red', label="Avg discriminator loss")
-    ax.plot(x, auc_y, color='yellow', linewidth = '3', label="AUC")
+    ax.plot(xg, gy, color='blue', label="Generator loss")
+    ax.plot(xd, dy,color='red', label="Avg discriminator loss")
+    ax.plot(xa, auc_y, color='yellow', linewidth = '3', label="AUC")
     # dont show loss for sub discriminators. Gets very messy.
     #for i in range(k):
     #    ax.plot(x, names['dy_' + str(i)], color='green', linewidth='0.5')
@@ -249,9 +251,9 @@ def start(path,result_path,csv_path):
     dimension = get_dim(path)
     sqrt = int(np.sqrt(dimension))
     seeds =[777, 45116, 4403, 92879, 34770]
-    lrs_g = [0.001]
+    lrs_g = [0.01, 0.001]
     lrs_d = [0.01,0.001]
-    ks =[2*sqrt,dimension,] #Decision between 2*sqrt and dim, 2^sqrt is way too much
+    ks =[sqrt,2*sqrt] #Decision between 2*sqrt and dim, 2^sqrt is way too much
     stop_epochs = [40]
     
     seed = 777
