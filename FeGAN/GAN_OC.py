@@ -89,21 +89,20 @@ def load_data():
 
     nx,ny,nz =(1,1,1)
     if args.data == "C":
-        nsamples, nx, ny, nz = np.shape(train)
-        train = train.reshape(nsamples, nx*ny*nz)
-        nsamples, nx, ny, nz = np.shape(test)
-        test = test.reshape(nsamples, nx*ny*nz)
+        train_samples, nx, ny, nz = np.shape(train)
+        train = train.reshape(train_samples, nx*ny*nz)
+        test_samples, nx, ny, nz = np.shape(test)
+        test = test.reshape(test_samples, nx*ny*nz)
     else: 
-        nsamples, nx, ny = np.shape(train)
-        train = train.reshape(nsamples, nx*ny)
-        nsamples, nx, ny = np.shape(test)
-        test = test.reshape(nsamples, nx*ny)  
+        train_samples, nx, ny = np.shape(train)
+        train = train.reshape(train_samples, nx*ny)
+        test_samples, nx, ny = np.shape(test)
+        test = test.reshape(test_samples, nx*ny)  
         
     ground_truth = np.ones(len(test_labels))
     inlier_idx = np.where(test_labels == inlier)
     ground_truth[inlier_idx[0]] = 0
-    
-    return train, test, ground_truth, nsamples, nx*ny*nz
+    return train, test, ground_truth, train_samples, nx*ny*nz
 
 '''
     Plot the loss of the models. Generator in blue. AUC in Yellow
@@ -138,7 +137,7 @@ def start_training(seed,stop_epochs,k,path,lr_g,lr_d,result_path):
     set_seed(seed)
     train = True
     
-    train_set,test_set,grond_truth,data_size,latent_size= load_data()
+    train_set,test_set,ground_truth,data_size,latent_size= load_data()
     
     if train:
         train_history = defaultdict(list)
@@ -174,7 +173,7 @@ def start_training(seed,stop_epochs,k,path,lr_g,lr_d,result_path):
             batch_size = min(500, data_size)
             num_batches = int(data_size / batch_size)
         
-            for idx in range(num_batches):
+            for idx in range(11,num_batches):
                 print('\nTesting for epoch {} index {}:'.format(epoch + 1, idx + 1))
 
                 # Generate noise
@@ -186,8 +185,8 @@ def start_training(seed,stop_epochs,k,path,lr_g,lr_d,result_path):
                 names["generated_data"] = generator.predict(noise, verbose = 1)
                 
                 X = np.concatenate((data_batch, names["generated_data"]))
-                Y = np.array([1] * batch_size + [0] * int(noise_size)) # 1 real, fake
-                
+                Y = np.array([1] * batch_size + [0] * int(noise_size)) # 1 real data, 0 fake data
+             
                 discriminator_loss = 0
                 for i in range(k):
                     names["sub_discriminator" + str(i) + "_loss"] = names["sub_discriminator" + str(i)].train_on_batch(X[:,names["subspaces"+str(i)]],Y)
@@ -218,7 +217,7 @@ def start_training(seed,stop_epochs,k,path,lr_g,lr_d,result_path):
             for i in range(1,k):
                 p_value += names["sub_discriminator" + str(i)].predict(test_set[:,names["subspaces"+str(i)]])
                 
-            data_y = pd.DataFrame(test_set)
+            data_y = pd.DataFrame(ground_truth)
             result = np.concatenate((p_value,data_y), axis=1)
             result = pd.DataFrame(result, columns=["p","y"])
             result = result.sort_values("p", ascending=True)
