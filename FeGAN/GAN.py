@@ -222,7 +222,7 @@ def start_training(seed,stop_epochs,k,path,lr_g,lr_d,result_path):
             print('AUC:{}'.format(AUC))
 
     plot(train_history,names,k,seed,result_path)
-    return AUC,train_history['auc'],train_history['discriminator_loss'],train_history['generator_loss']
+    return AUC,train_history['auc'],train_history['generator_loss'],train_history['discriminator_loss']
 
 def get_dim(path):
     return load_data(path)[0].shape[1]
@@ -250,7 +250,7 @@ def start(path,result_path,csv_path):
     seeds =[777, 45116, 4403, 92879, 34770]
     lr_g = 0.001
     lr_d= 0.01
-    k = 2*sqrt
+    k = 400
     stop_epoch = 30
     
     starter=0
