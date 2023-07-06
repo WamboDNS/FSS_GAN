@@ -22,7 +22,7 @@ import csv
 def parse_arguments():
     parser = argparse.ArgumentParser(description="FeGAN OD")
     parser.add_argument("--gpu", type=int,default=0)
-    parser.add_argument("--data", default="W")
+    parser.add_argument("--data", default="S")
     
     return parser.parse_args()
 
@@ -52,6 +52,10 @@ def set_seed(seed):
 def create_gen(latent_size):
     generator = Sequential()
     generator.add(layers.Dense(latent_size, input_dim=latent_size, activation="relu", kernel_initializer=keras.initializers.Identity(gain=1.0)))
+    ########################
+    generator.add(layers.Dense(latent_size, input_dim=latent_size, activation="relu", kernel_initializer=keras.initializers.Identity(gain=1.0)))
+    generator.add(layers.Dense(latent_size, input_dim=latent_size, activation="relu", kernel_initializer=keras.initializers.Identity(gain=1.0)))
+    ########################
     generator.add(layers.Dense(latent_size, activation='relu', kernel_initializer=keras.initializers.Identity(gain=1.0)))
     input_shape = (latent_size,)
     latent = keras.Input(input_shape)
@@ -64,6 +68,10 @@ def create_gen(latent_size):
 def create_dis(sub_size,data_size):
     discriminator = Sequential()
     discriminator.add(layers.Dense(np.ceil(np.sqrt(data_size)), input_dim=sub_size, activation='relu', kernel_initializer= keras.initializers.VarianceScaling(scale=1.0, mode='fan_in', distribution='normal', seed=None)))
+    ########################
+    discriminator.add(layers.Dense(np.ceil(np.sqrt(data_size)), input_dim=sub_size, activation='relu', kernel_initializer= keras.initializers.VarianceScaling(scale=1.0, mode='fan_in', distribution='normal', seed=None)))
+    discriminator.add(layers.Dense(np.ceil(np.sqrt(data_size)), input_dim=sub_size, activation='relu', kernel_initializer= keras.initializers.VarianceScaling(scale=1.0, mode='fan_in', distribution='normal', seed=None)))
+    ########################
     discriminator.add(layers.Dense(1, activation='sigmoid', kernel_initializer=keras.initializers.VarianceScaling(scale=1.0, mode='fan_in', distribution='normal', seed=None)))
     input_shape=(sub_size,)
     data = keras.Input(input_shape)
@@ -133,7 +141,7 @@ def start_training(seed,stop_epochs,k,path,lr_g,lr_d,result_path):
         stop = 0
 
         generator = create_gen(latent_size)
-        generator.compile(optimizer=keras.optimizers.SGD(learning_rate=lr_g), loss='binary_crossentropy')
+        generator.compile(optimizer=keras.optimizers.SGD(learning_rate=lr_g,momentum=0.9), loss='binary_crossentropy')
         latent_shape = (latent_size,)
         latent = keras.Input(latent_shape)
         
@@ -148,11 +156,11 @@ def start_training(seed,stop_epochs,k,path,lr_g,lr_d,result_path):
 
             names["fake" + str(i)] = names["sub_discriminator" + str(i)](tf.gather(names["fake"+str(i)],names["subspaces"+str(i)],axis=1))
             names["sub_discriminator_sum"] += names["fake" + str(i)]
-            names["sub_discriminator" + str(i)].compile(optimizer=keras.optimizers.SGD(learning_rate=lr_d), loss='binary_crossentropy')
+            names["sub_discriminator" + str(i)].compile(optimizer=keras.optimizers.SGD(learning_rate=lr_d,momentum=0.9), loss='binary_crossentropy')
             
         names["sub_discriminator_sum"] /= k
         names["combine_model"] = keras.Model(latent, names["sub_discriminator_sum"]) # model with the average decision. Used to train the generator.
-        names["combine_model"].compile(optimizer=keras.optimizers.SGD(learning_rate=lr_g), loss='binary_crossentropy')
+        names["combine_model"].compile(optimizer=keras.optimizers.SGD(learning_rate=lr_g,momentum=0.9), loss='binary_crossentropy')
         
         
         for epoch in range(epochs):
@@ -250,7 +258,7 @@ def start(path,result_path,csv_path):
     seeds =[777, 45116, 4403, 92879, 34770]
     lr_g = 0.001
     lr_d= 0.01
-    k = 400
+    k = 2*sqrt
     stop_epoch = 30
     
     starter=0
