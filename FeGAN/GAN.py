@@ -18,6 +18,7 @@ from collections import defaultdict
 import random
 from datetime import date
 import csv
+import seaborn as sns
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="FeGAN OD")
@@ -91,6 +92,7 @@ def load_data(path):
     Plot the loss of the models. Generator in blue. AUC in Yellow
 '''
 def plot(train_history,names,k,seed,result_path):
+    plt.cla()
     plt.style.use('ggplot')
     dy = train_history['discriminator_loss']
     gy = train_history['generator_loss']
@@ -236,6 +238,7 @@ def start_training(seed,stop_epochs,k,path,lr_g,lr_d,result_path):
 def get_dim(path):
     return load_data(path)[0].shape[1]
 
+'''
 def plot_avg(auc_avg, disc_avg,gen_avg,result_path):
     plt.style.use('ggplot')
     dy = disc_avg
@@ -251,42 +254,54 @@ def plot_avg(auc_avg, disc_avg,gen_avg,result_path):
     plt.ylabel("Loss")
     ax.legend(loc="lower right")
     plt.savefig(result_path + "/" +"average"+".svg",format="svg",dpi=1200)
+'''
+def plot_avg(auc, disc,gen,result_path):
+    plt.cla()
+    color = sns.color_palette("husl", 8)
+    sns.set(style="darkgrid",palette=color)
+    sns.lineplot(disc,x="epochs", y="values",linewidth = 2,label="Discriminators")
+    sns.lineplot(gen,x="epochs", y="values",linewidth = 2,label="Generator")    
+    sns.lineplot(auc,x="epochs", y="values",linewidth = 2,label="ROC AUC")
+    plt.savefig(result_path + "/" +"average"+".svg",format="svg",dpi=1200)
     
     
 def start(path,result_path,csv_path):
     dimension = get_dim(path)
     sqrt = int(np.sqrt(dimension))
-    seeds =[777, 45116, 4403, 92879, 34770]
+    seeds =[777, 45116]#, 4403, 92879, 34770]
     lr_g = 0.001
     lr_d= 0.01
     k = 2*sqrt
     stop_epoch = 30
     
-    starter=0
-    
     with open(result_path + csv_path, "a", newline = "") as csv_file:
         writer = csv.writer(csv_file)
         writer. writerow(["Seed", "LR_G", "LR_D", "k", "stop_epochs", "AUC"])
         
+    auc_avg = pd.DataFrame(columns=["epochs","values"])
+    disc_avg = pd.DataFrame(columns=["epochs","values"])
+    gen_avg = pd.DataFrame(columns=["epochs","values"])
+        
     for seed in seeds:
         AUC,temp_auc, temp_gen, temp_disc = start_training(seed,stop_epoch,k,path,lr_g,lr_d,result_path)
+        range = [*range(len(temp_auc))]
+        
+        auc_dump = pd.DataFrame({"epochs":range,"values":temp_auc})
+        gen_dump = pd.DataFrame({"epochs":range,"values":temp_gen})
+        disc_dump = pd.DataFrame({"epochs":range,"values":temp_disc})
+        
         output = [seed, lr_g, lr_d, k,stop_epoch,AUC]
-        if starter == 0:
-            auc_avg = np.array(temp_auc)
-            disc_avg = np.array(temp_disc)
-            gen_avg = np.array(temp_gen)
-        else:
-            auc_avg += temp_auc
-            disc_avg += temp_disc
-            gen_avg += temp_gen
-        starter = -1
+
+        auc_avg = pd.concat([auc_avg,auc_dump])
+        disc_avg = pd.concat([disc_avg,disc_dump])
+        gen_avg = pd.concat([gen_avg,gen_dump])
+        
         with open(result_path + csv_path, "a", newline = "") as csv_file:
             writer = csv.writer(csv_file)
             writer. writerow(output)
-    auc_avg /= len(seeds)
-    disc_avg /= len(seeds)
-    gen_avg /= len(seeds)
+
     plot_avg(auc_avg, disc_avg,gen_avg,result_path)
+    
 
     
 def buildPath(dataset):
