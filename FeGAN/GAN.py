@@ -284,11 +284,11 @@ def start(path,result_path,csv_path):
         
     for seed in seeds:
         AUC,temp_auc, temp_gen, temp_disc = start_training(seed,stop_epoch,k,path,lr_g,lr_d,result_path)
-        range = [*range(len(temp_auc))]
+        range_idx = [*range(len(temp_auc))]
         
-        auc_dump = pd.DataFrame({"epochs":range,"values":temp_auc})
-        gen_dump = pd.DataFrame({"epochs":range,"values":temp_gen})
-        disc_dump = pd.DataFrame({"epochs":range,"values":temp_disc})
+        auc_dump = pd.DataFrame({"epochs":range_idx,"values":temp_auc})
+        gen_dump = pd.DataFrame({"epochs":range_idx,"values":temp_gen})
+        disc_dump = pd.DataFrame({"epochs":range_idx,"values":temp_disc})
         
         output = [seed, lr_g, lr_d, k,stop_epoch,AUC]
 

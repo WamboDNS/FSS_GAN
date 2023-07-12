@@ -22,14 +22,8 @@ import csv
 def parse_arguments():
     parser = argparse.ArgumentParser(description="FeGAN OD")
     parser.add_argument("--gpu", type=int,default=0)
-    parser.add_argument("--data", default="C")
+    parser.add_argument("--data", default="F")
     parser.add_argument("--inlier", type=int, default=0)
-    #parser.add_argument("--path", default="../Resources/Datasets/Arrhythmia_withoutdupl_norm_02_v01.arff",
-    #                    help="Data path")
-    #parser.add_argument("--lr_gen", type=float, default=0.01, help="Learning rate generator")
-    #parser.add_argument("--lr_dis", type=float, default=0.01, help="Learning rate discriminator")
-    #parser.add_argument("--stop_epochs", type=int, default = 30, help="Generator stops training after stop_epochs")
-    #parser.add_argument("--k", type=int, default=30 , help="Number of discriminators")
     
     return parser.parse_args()
 
@@ -107,24 +101,32 @@ def load_data():
 '''
     Plot the loss of the models. Generator in blue. AUC in Yellow
 '''
-def plot(train_history,names,k,result_path):
+def plot(train_history,names,k,seed,result_path):
+    plt.style.use('ggplot')
     dy = train_history['discriminator_loss']
     gy = train_history['generator_loss']
     auc_y = train_history['auc']
     for i in range(k):
         names['dy_' + str(i)] = train_history['sub_discriminator{}_loss'.format(i)]
-    xg = np.linspace(1, len(gy), len(gy))
-    xd = np.linspace(1, len(dy), len(dy))
-    xa = np.linspace(1, len(auc_y), len(auc_y))
+    x = np.linspace(1, len(gy), len(gy))
     fig, ax = plt.subplots()
-    ax.plot(xg, gy, color='blue', label="Generator loss")
-    ax.plot(xd, dy,color='red', label="Avg discriminator loss")
-    ax.plot(xa, auc_y, color='yellow', linewidth = '3', label="AUC")
+    ax.plot(x, gy, color="cornflowerblue", label="Generator loss", linewidth=2)
+    ax.plot(x, dy,color="crimson", label="Average discriminator loss", linewidth=2)
+    ax.plot(x, auc_y, color="yellow", linewidth = 3, label="ROC AUC")
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    ax.legend(loc="lower right")
+    plt.savefig(result_path + "/" + str(seed)+".svg",format="svg",dpi=1200)
+    
+    fig_all,ax_all = plt.subplots()
     # dont show loss for sub discriminators. Gets very messy.
-    #for i in range(k):
-    #    ax.plot(x, names['dy_' + str(i)], color='green', linewidth='0.5')
-    ax.legend(loc="upper left")
-    plt.savefig(result_path + "/" + str(k))
+    for i in range(k):
+        ax_all.plot(x, names['dy_' + str(i)], color="fuchsia", linewidth='0.5',alpha=0.3)
+        
+    ax_all.plot(x, gy, color="cornflowerblue", label="Generator loss", linewidth=2)
+    ax_all.plot(x, dy,color="crimson", label="Average discriminator loss", linewidth=2)
+    ax_all.plot(x, auc_y, color="yellow", linewidth = 3, label="ROC AUC")
+    plt.savefig(result_path+"/"+str(seed)+"_all.svg",format="svg",dpi=1200)
     
 '''
     Randomly draw subspaces for each sub_discriminator. Store them in names[]
@@ -175,7 +177,7 @@ def start_training(seed,stop_epochs,k,path,lr_g,lr_d,result_path):
             batch_size = min(500, data_size)
             num_batches = int(data_size / batch_size)
         
-            for idx in range(11,num_batches):
+            for idx in range(num_batches):
                 print('\nTesting for epoch {} index {}:'.format(epoch + 1, idx + 1))
 
                 # Generate noise
@@ -240,37 +242,63 @@ def start_training(seed,stop_epochs,k,path,lr_g,lr_d,result_path):
                 train_history['auc'].append((sum / (len(inlier_parray) * len(outlier_parray))))
             print('AUC:{}'.format(AUC))
 
-    plot(train_history,names,k,result_path)
-    return AUC
+    plot(train_history,names,k,seed,result_path)
+    return AUC,train_history['auc'],train_history['generator_loss'],train_history['discriminator_loss']
 
 def get_dim(path):
     _,_,_,_,latent_size = load_data()
     return latent_size
+
+def plot_avg(auc_avg, disc_avg,gen_avg,result_path):
+    plt.style.use('ggplot')
+    dy = disc_avg
+    gy = gen_avg
+    auc_y = auc_avg
+
+    x = np.linspace(1, len(gy), len(gy))
+    fig, ax = plt.subplots()
+    ax.plot(x, gy, color="cornflowerblue", label="Generator loss",linewidth = 2)
+    ax.plot(x, dy,color="crimson", label="Average discriminator loss",linewidth = 2)
+    ax.plot(x, auc_y, color="yellow", linewidth = 3, label="ROC AUC")
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    ax.legend(loc="lower right")
+    plt.savefig(result_path + "/" +"average"+".svg",format="svg",dpi=1200)
     
 def start(path,result_path,csv_path):
     dimension = get_dim(path)
     sqrt = int(np.sqrt(dimension))
     seeds =[777, 45116, 4403, 92879, 34770]
-    lrs_g = [0.01, 0.001]
-    lrs_d = [0.01,0.001]
-    ks =[sqrt,2*sqrt] #Decision between 2*sqrt and dim, 2^sqrt is way too much
-    stop_epochs = [40]
+    lr_g = 0.001
+    lr_d= 0.01
+    k = 2*sqrt
+    stop_epoch = 30
     
-    seed = 777
+    starter = 0
     
     with open(result_path + csv_path, "a", newline = "") as csv_file:
         writer = csv.writer(csv_file)
         writer. writerow(["Seed", "LR_G", "LR_D", "k", "stop_epochs", "AUC"])
     
-    for k in ks:
-        for stop_epoch in stop_epochs:
-                for lr_g in lrs_g:
-                    for lr_d in lrs_d:
-                        AUC = start_training(seed,stop_epoch,k,path,lr_g,lr_d,result_path)
-                        output = [seed, lr_g, lr_d, k,stop_epoch,AUC]
-                        with open(result_path + csv_path, "a", newline = "") as csv_file:
-                            writer = csv.writer(csv_file)
-                            writer. writerow(output)
+    for seed in seeds:
+        AUC,temp_auc, temp_gen, temp_disc = start_training(seed,stop_epoch,k,path,lr_g,lr_d,result_path)
+        output = [seed, lr_g, lr_d, k,stop_epoch,AUC]
+        if starter == 0:
+            auc_avg = np.array(temp_auc)
+            disc_avg = np.array(temp_disc)
+            gen_avg = np.array(temp_gen)
+        else:
+            auc_avg += temp_auc
+            disc_avg += temp_disc
+            gen_avg += temp_gen
+        starter = -1
+        with open(result_path + csv_path, "a", newline = "") as csv_file:
+            writer = csv.writer(csv_file)
+            writer. writerow(output)
+    auc_avg /= len(seeds)
+    disc_avg /= len(seeds)
+    gen_avg /= len(seeds)
+    plot_avg(auc_avg, disc_avg,gen_avg,result_path)
     
 def buildPath(dataset):
     result_path = "./Results/FeGAN_Results/Run_" + str(date.today()) + "_"+dataset
