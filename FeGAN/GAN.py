@@ -268,7 +268,7 @@ def plot_avg(auc, disc,gen,result_path):
 def start(path,result_path,csv_path):
     dimension = get_dim(path)
     sqrt = int(np.sqrt(dimension))
-    seeds =[777, 45116]#, 4403, 92879, 34770]
+    seeds =[777, 45116, 4403, 92879, 34770]
     lr_g = 0.001
     lr_d= 0.01
     k = 2*sqrt
